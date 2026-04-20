@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// 1. PROJECT MANAGEMENT
+model Project {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  factorF     Float      @default(1.30) // Default government markup (Profit + Tax + Interest)
+  items       WorkItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// 2. MASTER DATA (GOVERNMENT PRICE REFERENCE)
+model Resource {
+  id          String            @id @default(cuid())
+  name        String            // e.g. "Portland Cement Type 1"
+  unit        String            // e.g. "ton", "kg", "cu.m."
+  type        ResourceType      // MATERIAL or LABOR
+  basePrice   Float             // Standard Gov Price per unit
+  region      String?           // Optional: Region-specific pricing
+  components  RecipeComponent[]
+}
+
+enum ResourceType {
+  MATERIAL
+  LABOR
+}
+
+// 3. MASTER ASSEMBLIES (CALCULATION RECIPES)
+model Assembly {
+  id          String            @id @default(cuid())
+  name        String            // e.g. "Structural Column (C1)"
+  category    String            // e.g. "Structural Work"
+  unit        String            // e.g. "m" or "sq.m."
+  description String?
+  components  RecipeComponent[] // The ingredients (materials + labor)
+  workItems   WorkItem[]
+}
+
+model RecipeComponent {
+  id          String   @id @default(cuid())
+  assemblyId  String
+  assembly    Assembly @relation(fields: [assemblyId], references: [id])
+  resourceId  String
+  resource    Resource @relation(fields: [resourceId], references: [id])
+  
+  // Formula for calculation, e.g., "width * depth * 1.05"
+  // Variables available: width, depth, height, length, qty
+  formula     String   
+  description String?
+}
+
+// 4. ACTUAL PROJECT DATA
+model WorkItem {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  assemblyId  String?
+  assembly    Assembly? @relation(fields: [assemblyId], references: [id])
+  
+  name        String   // Display name in BOQ
+  quantity    Float    // Main quantity (e.g., number of columns)
+  
+  // Parameters for the formula
+  width       Float?
+  depth       Float?
+  height      Float?
+  length      Float?
+  
+  // Calculated totals (cached for performance)
+  totalMaterial Float    @default(0)
+  totalLabor    Float    @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --primary: #3C50E0;
+  --primary-dark: #3144d1;
+  --secondary: #80CAEE;
+  --success: #219653;
+  --danger: #D34053;
+  --warning: #FFA70B;
+  --bg-body: #F1F5F9;
+  --sidebar-bg: #1C2434;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-700 font-sans antialiased text-[14px];
+  }
+}
+
+@layer components {
+  .admin-card {
+    @apply bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden;
+  }
+  
+  .input-label {
+    @apply block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5;
+  }
+  
+  .input-field {
+    @apply w-full bg-slate-50 border border-slate-200 rounded-sm py-2 px-3 text-sm transition-all focus:border-[var(--primary)] focus:bg-white outline-none;
+  }
+
+  /* Compact Mode Tweak */
+  .compact-input {
+    @apply py-1 px-2 text-xs border-slate-200 rounded-sm focus:border-blue-400 bg-white;
+  }
+}
+
+/* Custom Scrollbar for better compact feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300;
+}
+
+/* Animation utilities */
+.page-transition {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Responsiveness & Compacting */
+@media (max-width: 640px) {
+  .admin-card { @apply rounded-none border-x-0; }
+  .px-7 { @apply px-4; }
+  .py-6 { @apply py-4; }
+}
+
+/* Force Table Cells to be tighter */
+td {
+  @apply px-4 py-2.5 !important;
+}
+
+th {
+  @apply px-4 py-3 !important;
+}
