@@ -4,8 +4,8 @@ export default function RebarPreview({
   width, depth, isBeam, isSlab, slabType,
   // Column simple props
   count, mainSize,
-  // Beam detailed props
-  topCount, bottomCount, extraTopCount, extraBottomCount,
+  // Beam detailed arrays
+  topBars = [], bottomBars = [], supportBars = [], spanBars = [],
   stirrupSize, className 
 }) {
   const maxDim = Math.max(width, depth);
@@ -18,8 +18,13 @@ export default function RebarPreview({
 
   const stirrupX = x0 + 5;
   const stirrupY = y0 + 5;
-  const stirrupW = w - 10;
-  const stirrupD = d - 10;
+  const stirrupW = Math.max(2, w - 10);
+  const stirrupD = Math.max(2, d - 10);
+
+  const topCountTotal = topBars.reduce((sum, b) => sum + (b.count || 0), 0);
+  const bottomCountTotal = bottomBars.reduce((sum, b) => sum + (b.count || 0), 0);
+  const supportCountTotal = supportBars.reduce((sum, b) => sum + (b.count || 0), 0);
+  const spanCountTotal = spanBars.reduce((sum, b) => sum + (b.count || 0), 0);
 
   const generateDots = () => {
     const dots = [];
@@ -35,21 +40,21 @@ export default function RebarPreview({
         dots.push({ x: x0, y, type: 'HL' }); // Visual Horizontal Line point
       }
     } else if (isBeam) {
-      // BEAM LOGIC: Top vs Bottom
-      for (let i = 0; i < topCount; i++) {
-        const x = topCount > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (topCount - 1)) : stirrupX + stirrupW / 2;
+      // BEAM LOGIC: Sum counts from arrays
+      for (let i = 0; i < topCountTotal; i++) {
+        const x = topCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (topCountTotal - 1)) : stirrupX + stirrupW / 2;
         dots.push({ x, y: stirrupY + inset, color: '#1E293B', label: 'T' });
       }
-      for (let i = 0; i < bottomCount; i++) {
-        const x = bottomCount > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (bottomCount - 1)) : stirrupX + stirrupW / 2;
+      for (let i = 0; i < bottomCountTotal; i++) {
+        const x = bottomCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (bottomCountTotal - 1)) : stirrupX + stirrupW / 2;
         dots.push({ x, y: stirrupY + stirrupD - inset, color: '#1E293B', label: 'B' });
       }
-      for (let i = 0; i < extraTopCount; i++) {
-        const x = extraTopCount > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (extraTopCount - 1)) : stirrupX + stirrupW / 2;
+      for (let i = 0; i < supportCountTotal; i++) {
+        const x = supportCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (supportCountTotal - 1)) : stirrupX + stirrupW / 2;
         dots.push({ x, y: stirrupY + inset + 12, color: '#3B82F6', label: 'ET', r: 3 });
       }
-      for (let i = 0; i < extraBottomCount; i++) {
-        const x = extraBottomCount > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (extraBottomCount - 1)) : stirrupX + stirrupW / 2;
+      for (let i = 0; i < spanCountTotal; i++) {
+        const x = spanCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (spanCountTotal - 1)) : stirrupX + stirrupW / 2;
         dots.push({ x, y: stirrupY + stirrupD - inset - 12, color: '#10B981', label: 'EB', r: 3 });
       }
     } else {
@@ -122,8 +127,8 @@ export default function RebarPreview({
            </span>
          ) : isBeam ? (
            <>
-             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">TOP: {topCount}</span>
-             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">BOT: {bottomCount}</span>
+             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">TOP: {topCountTotal}</span>
+             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">BOT: {bottomCountTotal}</span>
            </>
          ) : (
            <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">MAIN: {count}x {mainSize}</span>

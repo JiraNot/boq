@@ -54,6 +54,12 @@ const boqV2Schema = z.object({
   overheadRate: z.number().min(0).max(100),
   templates: z.array(templateSchema).default([]),
   instances: z.array(instanceSchema).default([]),
+  // Reference Image (Tracing)
+  refImage: z.string().nullable().default(null),
+  refImageX: z.number().default(0),
+  refImageY: z.number().default(0),
+  refImageScale: z.number().min(0.001).default(1),
+  refImageOpacity: z.number().min(0).max(1).default(0.5),
 });
 
 const DEFAULT_TEMPLATES = [
@@ -68,6 +74,20 @@ const DEFAULT_TEMPLATES = [
     stirrupSpacingEnd: 0.10, stirrupSpacingMiddle: 0.20, stirrupZoneRatio: 0.25
   },
 ];
+
+const DEFAULT_PROJECT_DATA = {
+  projectName: 'Standard Project',
+  profitRate: 10,
+  taxRate: 7,
+  overheadRate: 13,
+  templates: DEFAULT_TEMPLATES,
+  instances: [],
+  refImage: null,
+  refImageX: 0,
+  refImageY: 0,
+  refImageScale: 1,
+  refImageOpacity: 0.5
+};
 
 export function useBoqStore() {
   const getInitialData = () => {
@@ -94,7 +114,12 @@ export function useBoqStore() {
       taxRate: 7,
       overheadRate: 13,
       templates: DEFAULT_TEMPLATES,
-      instances: []
+      instances: [],
+      refImage: null,
+      refImageX: 0,
+      refImageY: 0,
+      refImageScale: 1,
+      refImageOpacity: 0.5
     };
   };
 
@@ -102,6 +127,10 @@ export function useBoqStore() {
     resolver: zodResolver(boqV2Schema),
     defaultValues: getInitialData()
   });
+
+  const resetToDefault = () => {
+    form.reset(DEFAULT_PROJECT_DATA);
+  };
 
   const watchAll = form.watch();
   
@@ -115,5 +144,6 @@ export function useBoqStore() {
   return {
     form,
     data: watchAll,
+    resetToDefault,
   };
 }

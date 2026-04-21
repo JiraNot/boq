@@ -3,8 +3,9 @@
 A high-fidelity React application designed for rapid structural steel estimation and civil engineering takeoffs. Use the plan-first workspace to draw beams, columns, and slabs, then instantly generate a professional BOQ with accurate material weights and cost distributions.
 
 ## 🚀 Navigation Control
-- **Plan Takeoff**: Click-Move-Click drawing engine with intelligent snapping.
+- **Plan Takeoff**: Click-Move-Click drawing engine with intelligent snapping and **Reference Trace Overlay** (upload plans to draw over).
 - **BOQ Summary**: Real-time material aggregation and Factor F markup calculation.
+- **Project File Management**: Save and open projects locally with `.boq` files.
 - **Project Report**: High-level data visualization of cost and resources.
 
 ## 📂 Project Documentation (Mission Control)

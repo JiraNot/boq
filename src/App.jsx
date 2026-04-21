@@ -15,13 +15,16 @@ import LayoutCanvas from './components/LayoutCanvas';
 import TemplateManager from './components/TemplateManager';
 import SettingsModal from './components/SettingsModal';
 import ProjectReport from './components/ProjectReport';
+import ProcurementSummary from './components/ProcurementSummary';
+
 
 // Icons
-import { Table as TableIcon, Layout as LayoutIcon, FileText, Settings as CategoryIcon } from 'lucide-react';
+import { Table as TableIcon, Layout as LayoutIcon, FileText, ShoppingCart, Settings as CategoryIcon } from 'lucide-react';
 
 export default function App() {
-  const { form, data } = useBoqStore();
-  const { register, control, setValue } = form;
+  const { form, data, resetToDefault } = useBoqStore();
+  const { register, control, setValue, reset } = form;
+  const projectFileInputRef = React.useRef(null);
   
   const { fields: templates, append: appendTemplate, remove: removeTemplate } = useFieldArray({ control, name: "templates" });
   const { fields: instances, append: appendInstance, remove: removeInstance, update: updateInstance } = useFieldArray({ control, name: "instances" });
@@ -100,22 +103,35 @@ export default function App() {
            }
         } else {
            const isBeam = assembly.id === 'a2';
-           if (isBeam) {
-             const topSpec = STEEL_DATA[template.topMainSize];
-             if (topSpec) addSteel(topSpec.id, template.topMainCount * totalLength * topSpec.weight * 1.05);
-             const botSpec = STEEL_DATA[template.bottomMainSize];
-             if (botSpec) addSteel(botSpec.id, template.bottomMainCount * totalLength * botSpec.weight * 1.05);
+            if (isBeam) {
+              // TOP BARS
+              const topBars = template.topBars || [{ count: template.topMainCount, size: template.topMainSize }];
+              topBars.forEach(grp => {
+                const spec = STEEL_DATA[grp.size];
+                if (spec && grp.count > 0) addSteel(spec.id, grp.count * totalLength * spec.weight * 1.05);
+              });
 
-             // EXTRA REBAR (Beams)
-             const extraTopSpec = STEEL_DATA[template.extraTopSize];
-             if (extraTopSpec && template.extraTopCount > 0) {
-                addSteel(extraTopSpec.id, template.extraTopCount * template.extraTopLength * totalQty * extraTopSpec.weight * 1.05);
-             }
-             const extraBotSpec = STEEL_DATA[template.extraBottomSize];
-             if (extraBotSpec && template.extraBottomCount > 0) {
-                addSteel(extraBotSpec.id, template.extraBottomCount * template.extraBottomLength * totalQty * extraBotSpec.weight * 1.05);
-             }
-           } else {
+              // BOTTOM BARS
+              const bottomBars = template.bottomBars || [{ count: template.bottomMainCount, size: template.bottomMainSize }];
+              bottomBars.forEach(grp => {
+                const spec = STEEL_DATA[grp.size];
+                if (spec && grp.count > 0) addSteel(spec.id, grp.count * totalLength * spec.weight * 1.05);
+              });
+
+              // SUPPORT BARS (Extra Top)
+              const supportBars = template.supportBars || (template.extraTopCount > 0 ? [{ count: template.extraTopCount, size: template.extraTopSize, length: template.extraTopLength }] : []);
+              supportBars.forEach(grp => {
+                const spec = STEEL_DATA[grp.size];
+                if (spec && grp.count > 0) addSteel(spec.id, grp.count * (grp.length || 0) * totalQty * spec.weight * 1.05);
+              });
+
+              // SPAN BARS (Extra Bottom)
+              const spanBars = template.spanBars || (template.extraBottomCount > 0 ? [{ count: template.extraBottomCount, size: template.extraBottomSize, length: template.extraBottomLength }] : []);
+              spanBars.forEach(grp => {
+                const spec = STEEL_DATA[grp.size];
+                if (spec && grp.count > 0) addSteel(spec.id, grp.count * (grp.length || 0) * totalQty * spec.weight * 1.05);
+              });
+            } else {
              const mainSpec = STEEL_DATA[template.mainBarSize];
              if (mainSpec) addSteel(mainSpec.id, template.mainBarCount * totalLength * mainSpec.weight * 1.05);
            }
@@ -125,7 +141,7 @@ export default function App() {
              const sEnd = template.stirrupSpacingEnd || 0.10;
              const sMid = template.stirrupSpacingMiddle || 0.20;
              const ratio = template.stirrupZoneRatio || 0.25;
-             const stirrupLength = 2 * (template.width + template.depth);
+             const stirrupLength = 2 * (Math.max(0, template.width - 0.1) + Math.max(0, template.depth - 0.1));
              const lengthEndTotal = totalLength * ratio * 2;
              const lengthMidTotal = totalLength - lengthEndTotal;
              const totalStirrupWeight = (lengthEndTotal/sEnd + lengthMidTotal/sMid) * stirrupLength * stirrupSpec.weight * 1.05;
@@ -168,26 +184,79 @@ export default function App() {
     });
   };
 
+  const handleSaveProject = () => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = `${data.projectName.replace(/\s+/g, '_')}_${date}.boq`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleOpenProject = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        // Basic validation: must have templates and instances
+        if (!parsed.templates || !parsed.instances) throw new Error("Invalid file format");
+        reset(parsed);
+        alert("Project loaded successfully!");
+      } catch (err) {
+        alert("Error loading project: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const handleNewProject = () => {
+    if (confirm("Start a new project? This will clear all current work. Make sure you have saved your progress.")) {
+      resetToDefault();
+      alert("New project started.");
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <Header 
           projectSummary={projectSummary} 
-          onExport={() => {}} 
           onExportPDF={() => generatePDF(projectSummary, compositeFactorF)} 
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onSave={handleSaveProject}
+          onOpen={() => projectFileInputRef.current?.click()}
+          onNew={handleNewProject}
+        />
+        <input 
+          type="file" 
+          ref={projectFileInputRef} 
+          onChange={handleOpenProject} 
+          accept=".boq,application/json" 
+          className="hidden" 
         />
 
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-sm w-fit border border-slate-200 shadow-sm">
-           <button onClick={() => setActiveTab('layout')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'layout' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
-             <LayoutIcon className="w-3.5 h-3.5" /> 1. PLAN TAKEOFF
-           </button>
-           <button onClick={() => setActiveTab('table')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'table' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
-             <TableIcon className="w-3.5 h-3.5" /> 2. BOQ SUMMARY
-           </button>
-           <button onClick={() => setActiveTab('report')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'report' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
-             <FileText className="w-3.5 h-3.5" /> 3. PROJECT REPORT
-           </button>
+        <div className="w-full overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0">
+          <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-sm w-fit border border-slate-200 shadow-sm whitespace-nowrap">
+             <button onClick={() => setActiveTab('layout')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'layout' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+               <LayoutIcon className="w-3.5 h-3.5" /> 1. PLAN TAKEOFF
+             </button>
+             <button onClick={() => setActiveTab('table')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'table' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+               <TableIcon className="w-3.5 h-3.5" /> 2. BOQ SUMMARY
+             </button>
+             <button onClick={() => setActiveTab('report')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'report' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+               <FileText className="w-3.5 h-3.5" /> 3. PROJECT REPORT
+             </button>
+             <button onClick={() => setActiveTab('procurement')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'procurement' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+               <ShoppingCart className="w-3.5 h-3.5" /> 4. MATERIAL LIST
+             </button>
+          </div>
         </div>
 
         <div className="space-y-8">
@@ -201,33 +270,40 @@ export default function App() {
                     deleteItem={deleteInstance}
                     templates={watchTemplates}
                     addInstance={addInstance}
+                    refImage={data.refImage}
+                    refImageX={data.refImageX}
+                    refImageY={data.refImageY}
+                    refImageScale={data.refImageScale}
+                    refImageOpacity={data.refImageOpacity}
+                    setRefImageValue={setValue}
                   />
                   <div className="pt-4 border-t border-slate-200">
-                    <TemplateManager templates={templates} append={appendTemplate} remove={removeTemplate} register={register} setValue={setValue} watch={form.watch} />
+                    <TemplateManager templates={templates} append={appendTemplate} remove={removeTemplate} register={register} setValue={setValue} watch={form.watch} control={control} />
                   </div>
                </div>
             )}
             {activeTab === 'table' && (
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 page-transition">
-                <div className="xl:col-span-3">
-                  <TemplateManager templates={templates} append={appendTemplate} remove={removeTemplate} register={register} setValue={setValue} />
-                </div>
-                <div className="xl:col-span-9">
-                  <BoqGrid 
-                    templates={projectSummary.calculatedTemplates}
-                    allInstances={watchInstances}
-                    register={register}
-                    control={control}
-                    setValue={setValue}
-                    compositeFactorF={compositeFactorF}
-                    assemblies={DEFAULT_ASSEMBLIES}
-                    onDeleteItem={deleteInstance}
-                  />
+              <div className="space-y-8 page-transition">
+                <BoqGrid 
+                  templates={projectSummary.calculatedTemplates}
+                  allInstances={watchInstances}
+                  register={register}
+                  control={control}
+                  setValue={setValue}
+                  compositeFactorF={compositeFactorF}
+                  assemblies={DEFAULT_ASSEMBLIES}
+                  onDeleteItem={deleteInstance}
+                />
+                <div className="pt-8 border-t border-slate-200">
+                  <TemplateManager templates={templates} append={appendTemplate} remove={removeTemplate} register={register} setValue={setValue} watch={form.watch} control={control} />
                 </div>
               </div>
             )}
             {activeTab === 'report' && (
               <ProjectReport projectSummary={projectSummary} compositeFactorF={compositeFactorF} />
+            )}
+            {activeTab === 'procurement' && (
+              <ProcurementSummary projectSummary={projectSummary} />
             )}
           </div>
         </div>

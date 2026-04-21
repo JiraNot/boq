@@ -29,7 +29,7 @@ export const DEFAULT_RESOURCES = [
 
 export const DEFAULT_ASSEMBLIES = [
   { 
-    id: 'a1', name: 'Foundation Column (C1)', category: 'Structure', unit: 'm', 
+    id: 'a1', name: 'Foundation Column (C1)', prefix: 'C', category: 'Structure', unit: 'm', 
     hasRebar: true,
     components: [
       { resourceId: 'r1', formula: 'width * depth * 0.35' },
@@ -39,14 +39,14 @@ export const DEFAULT_ASSEMBLIES = [
     ]
   },
   { 
-    id: 'a2', name: 'Standard Beam (B1)', category: 'Structure', unit: 'm', 
+    id: 'a2', name: 'Standard Beam (B1)', prefix: 'B', category: 'Structure', unit: 'm', 
     hasRebar: true,
     components: [
       { resourceId: 'r1', formula: 'width * depth * 0.35' },
     ]
   },
   {
-    id: 'a3', name: 'Solid Slab (S1)', category: 'Structure', unit: 'sq.m.',
+    id: 'a3', name: 'Solid Slab (S1)', prefix: 'S', category: 'Structure', unit: 'sq.m.',
     hasRebar: true, // Now supports specialized slab rebar UI
     isSlab: true,
     components: [
@@ -55,7 +55,7 @@ export const DEFAULT_ASSEMBLIES = [
     ]
   },
   {
-    id: 'a4', name: 'Bored Pile (0.35m)', category: 'Foundation', unit: 'm',
+    id: 'a4', name: 'Bored Pile (0.35m)', prefix: 'P', category: 'Foundation', unit: 'm',
     hasRebar: true,
     components: [
       { resourceId: 'r1', formula: '0.1 * 0.35' },
