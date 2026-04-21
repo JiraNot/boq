@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { pb } from '../lib/pocketbase';
 
 const STORAGE_KEY = 'boq_autopilot_v2';
 
@@ -19,6 +20,10 @@ const templateSchema = z.object({
   topMainCount: z.number().min(0).default(2),
   bottomMainSize: z.string().default('DB12'),
   bottomMainCount: z.number().min(0).default(2),
+  // ZONED REINFORCEMENT (Support vs Mid-span)
+  useZonedReinforcement: z.boolean().default(false),
+  topMainCountSup: z.number().min(0).default(3),
+  bottomMainCountSup: z.number().min(0).default(2),
   extraTopSize: z.string().default('DB12'),
   extraTopCount: z.number().min(0).default(0),
   extraTopLength: z.number().min(0).default(1.0),
@@ -90,6 +95,22 @@ const DEFAULT_PROJECT_DATA = {
 };
 
 export function useBoqStore() {
+  const [user, setUser] = useState(pb.authStore.model);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState(null);
+  const [remoteProjectId, setRemoteProjectId] = useState(localStorage.getItem('remote_project_id'));
+
+  // Auth Monitor
+  useEffect(() => {
+    return pb.authStore.onChange((token, model) => {
+      setUser(model);
+      if (!model) {
+        setRemoteProjectId(null);
+        localStorage.removeItem('remote_project_id');
+      }
+    });
+  }, []);
+
   const getInitialData = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -141,9 +162,56 @@ export function useBoqStore() {
     return () => subscription.unsubscribe();
   }, [form.watch]);
 
+  // CLOUD SYNC LOGIC
+  useEffect(() => {
+    if (!user) return;
+
+    const timer = setTimeout(async () => {
+      setIsSyncing(true);
+      try {
+        if (remoteProjectId) {
+          await pb.collection('projects').update(remoteProjectId, {
+            name: watchAll.projectName,
+            data: watchAll
+          });
+        } else {
+          // Search for existing project with same name before creating
+          const existing = await pb.collection('projects').getList(1, 1, {
+            filter: `name = "${watchAll.projectName}" && owner = "${user.id}"`
+          });
+
+          if (existing.items.length > 0) {
+            const pid = existing.items[0].id;
+            setRemoteProjectId(pid);
+            localStorage.setItem('remote_project_id', pid);
+            await pb.collection('projects').update(pid, { data: watchAll });
+          } else {
+            const created = await pb.collection('projects').create({
+              name: watchAll.projectName,
+              data: watchAll,
+              owner: user.id
+            });
+            setRemoteProjectId(created.id);
+            localStorage.setItem('remote_project_id', created.id);
+          }
+        }
+        setLastSync(new Date());
+      } catch (err) {
+        console.error("Sync error:", err);
+      } finally {
+        setIsSyncing(false);
+      }
+    }, 2000); // 2s debounce
+
+    return () => clearTimeout(timer);
+  }, [watchAll, user]);
+
   return {
     form,
     data: watchAll,
     resetToDefault,
+    user,
+    isSyncing,
+    lastSync
   };
 }

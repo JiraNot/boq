@@ -6,11 +6,12 @@
 ---
 
 ## 🚀 Accomplishments (Recently Completed)
-1.  **Multi-Layer Reinforcement**: Upgraded beam specs to support dynamic layers (Support Top/Bottom, Span Top/Bottom) with mixed bar sizes.
-2.  **Reference Trace Overlay**: Implemented ability to upload floor plans (PNG/JPG) as backdrops for drawing with adjustable scale/opacity.
-3.  **Project Management (.boq)**: Added local file Save/Open/New system, making projects portable and safely backed up.
-4.  **Premium Animation & Tooltips**: Integrated a global help system using Framer Motion to guide users through CAD and structural inputs.
-5.  **Drawing Engine 2.0 (Click-Move-Click)**: Professional 2-step click system with ghost previews and live length displays.
+1.  **Zoned Beam Reinforcement (L/4)**: Automated engineering zoning for beams, splitting reinforcement into Support and Span zones with standard L/4 ratios.
+2.  **Procurement Unit Conversion**: Full system to convert theoretical rebar weights into physical commercial units (10m/12m Bar Pieces & 100sqm Mesh Rolls).
+3.  **Detailed Itemized Takeoff**: Itemized reporting by specific member length and template type, enabling accurate site fabrication lists.
+4.  **Advanced Chain Drawing Engine**: High-fidelity continuous drawing with right-click cancellation, professional snapping, and node-conflict resolution.
+5.  **Reference Trace Overlay**: Implemented ability to upload floor plans (PNG/JPG) as backdrops for drawing with adjustable scale/opacity.
+6.  **Project Management (.boq)**: Added local file Save/Open/New system, making projects portable and safely backed up.
 
 ## 🛠️ Active "Missions" (What I am doing now)
 1.  **Structural Integrity Audit**: Finalizing verification of weight calculations for complex multi-layer configurations.

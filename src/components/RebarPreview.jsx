@@ -8,6 +8,7 @@ export default function RebarPreview({
   topBars = [], bottomBars = [], supportBars = [], spanBars = [],
   stirrupSize, className 
 }) {
+  const [currentView, setCurrentView] = React.useState('sup'); // 'sup' | 'mid'
   const maxDim = Math.max(width, depth);
   const scale = 140 / maxDim;
   
@@ -49,13 +50,21 @@ export default function RebarPreview({
         const x = bottomCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (bottomCountTotal - 1)) : stirrupX + stirrupW / 2;
         dots.push({ x, y: stirrupY + stirrupD - inset, color: '#1E293B', label: 'B' });
       }
-      for (let i = 0; i < supportCountTotal; i++) {
-        const x = supportCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (supportCountTotal - 1)) : stirrupX + stirrupW / 2;
-        dots.push({ x, y: stirrupY + inset + 12, color: '#3B82F6', label: 'ET', r: 3 });
+      
+      // SHOW SUPPORT BARS ONLY IN SUP VIEW
+      if (currentView === 'sup') {
+        for (let i = 0; i < supportCountTotal; i++) {
+          const x = supportCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (supportCountTotal - 1)) : stirrupX + stirrupW / 2;
+          dots.push({ x, y: stirrupY + inset + 12, color: '#3B82F6', label: 'ET', r: 3 });
+        }
       }
-      for (let i = 0; i < spanCountTotal; i++) {
-        const x = spanCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (spanCountTotal - 1)) : stirrupX + stirrupW / 2;
-        dots.push({ x, y: stirrupY + stirrupD - inset - 12, color: '#10B981', label: 'EB', r: 3 });
+      
+      // SHOW SPAN BARS ONLY IN MID VIEW
+      if (currentView === 'mid') {
+        for (let i = 0; i < spanCountTotal; i++) {
+          const x = spanCountTotal > 1 ? stirrupX + inset + (i * (stirrupW - 2 * inset) / (spanCountTotal - 1)) : stirrupX + stirrupW / 2;
+          dots.push({ x, y: stirrupY + stirrupD - inset - 12, color: '#10B981', label: 'EB', r: 3 });
+        }
       }
     } else {
       // COLUMN LOGIC
@@ -85,6 +94,23 @@ export default function RebarPreview({
 
   return (
     <div className={`flex flex-col items-center bg-white p-4 rounded-sm border border-slate-200 shadow-inner ${className}`}>
+      {isBeam && (
+        <div className="flex bg-slate-100 p-1 rounded-sm w-full mb-4">
+           <button 
+             onClick={() => setCurrentView('sup')}
+             className={`flex-1 py-1.5 text-[8px] font-black uppercase rounded-sm transition-all ${currentView === 'sup' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+           >
+              Support (L/4)
+           </button>
+           <button 
+             onClick={() => setCurrentView('mid')}
+             className={`flex-1 py-1.5 text-[8px] font-black uppercase rounded-sm transition-all ${currentView === 'mid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+           >
+              Mid-Span (L/2)
+           </button>
+        </div>
+      )}
+
       <svg viewBox="0 0 200 200" className="w-56 h-56 drop-shadow-sm">
         <rect x={x0} y={y0} width={w} height={d} fill={isSlab ? "#F1F5F9" : "#F8FAFC"} stroke="#CBD5E1" strokeWidth="2" />
         
@@ -114,7 +140,7 @@ export default function RebarPreview({
         )}
 
         <text x="100" y="20" textAnchor="middle" className="text-[10px] font-bold fill-slate-400 uppercase tracking-widest">
-           {isSlab ? (slabType === 'WIREMESH' ? 'Wire Mesh Detail' : 'Slab Grid Detail') : isBeam ? 'Beam Section' : 'Column Section'}
+           {isSlab ? (slabType === 'WIREMESH' ? 'Wire Mesh Detail' : 'Slab Grid Detail') : isBeam ? (currentView === 'sup' ? 'End Section (Sup)' : 'Mid Section (Mid)') : 'Column Section'}
         </text>
         <text x="10" y="190" className="text-[8px] font-bold fill-slate-300 uppercase">
            {isSlab ? `Area: ${(width * depth).toFixed(2)}sq.m.` : `W: ${width}m x D: ${depth}m`}
@@ -127,8 +153,9 @@ export default function RebarPreview({
            </span>
          ) : isBeam ? (
            <>
-             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">TOP: {topCountTotal}</span>
-             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">BOT: {bottomCountTotal}</span>
+             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm uppercase tracking-tighter">View: {currentView}</span>
+             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">TOP: {topCountTotal + (currentView === 'sup' ? supportCountTotal : 0)}</span>
+             <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">BOT: {bottomCountTotal + (currentView === 'mid' ? spanCountTotal : 0)}</span>
            </>
          ) : (
            <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-sm">MAIN: {count}x {mainSize}</span>

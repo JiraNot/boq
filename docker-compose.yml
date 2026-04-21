@@ -1,0 +1,25 @@
+version: "3.7"
+services:
+  pocketbase:
+    image: muchobien/pocketbase:latest
+    container_name: boq_pocketbase
+    restart: unless-stopped
+    command:
+      - /usr/local/bin/pocketbase
+      - serve
+      - --http=0.0.0.0:8090
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./pb_data:/pb_data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    environment:
+      - TZ=Asia/Bangkok
+
+networks:
+  default:
+    name: coolify

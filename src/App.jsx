@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useFieldArray } from 'react-hook-form';
 import { useBoqStore } from './hooks/use-boq-store';
 import { evaluateFormula } from './lib/calculator';
@@ -16,21 +16,27 @@ import TemplateManager from './components/TemplateManager';
 import SettingsModal from './components/SettingsModal';
 import ProjectReport from './components/ProjectReport';
 import ProcurementSummary from './components/ProcurementSummary';
+import DetailedTakeoff from './components/DetailedTakeoff';
+import AuthModal from './components/AuthModal';
+import CloudSyncStatus from './components/CloudSyncStatus';
+import { signOut } from './lib/pocketbase';
 
 
 // Icons
-import { Table as TableIcon, Layout as LayoutIcon, FileText, ShoppingCart, Settings as CategoryIcon } from 'lucide-react';
+import { Table as TableIcon, Layout as LayoutIcon, FileText, ShoppingCart, Settings as CategoryIcon, ListTree } from 'lucide-react';
 
 export default function App() {
   const { form, data, resetToDefault } = useBoqStore();
   const { register, control, setValue, reset } = form;
-  const projectFileInputRef = React.useRef(null);
+  const projectFileInputRef = useRef(null);
   
   const { fields: templates, append: appendTemplate, remove: removeTemplate } = useFieldArray({ control, name: "templates" });
   const { fields: instances, append: appendInstance, remove: removeInstance, update: updateInstance } = useFieldArray({ control, name: "instances" });
   
   const [activeTab, setActiveTab] = useState('layout'); 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const { user, isSyncing, lastSync } = useBoqStore();
   
   const { templates: watchTemplates, instances: watchInstances, profitRate, taxRate, overheadRate } = data;
 
@@ -122,14 +128,20 @@ export default function App() {
               const supportBars = template.supportBars || (template.extraTopCount > 0 ? [{ count: template.extraTopCount, size: template.extraTopSize, length: template.extraTopLength }] : []);
               supportBars.forEach(grp => {
                 const spec = STEEL_DATA[grp.size];
-                if (spec && grp.count > 0) addSteel(spec.id, grp.count * (grp.length || 0) * totalQty * spec.weight * 1.05);
+                if (spec && grp.count > 0) {
+                  const effectiveLength = template.useZonedReinforcement ? (totalLength * 0.5) : ((grp.length || 0) * totalQty);
+                  addSteel(spec.id, grp.count * effectiveLength * spec.weight * 1.05);
+                }
               });
 
               // SPAN BARS (Extra Bottom)
               const spanBars = template.spanBars || (template.extraBottomCount > 0 ? [{ count: template.extraBottomCount, size: template.extraBottomSize, length: template.extraBottomLength }] : []);
               spanBars.forEach(grp => {
                 const spec = STEEL_DATA[grp.size];
-                if (spec && grp.count > 0) addSteel(spec.id, grp.count * (grp.length || 0) * totalQty * spec.weight * 1.05);
+                if (spec && grp.count > 0) {
+                  const effectiveLength = template.useZonedReinforcement ? (totalLength * 0.5) : ((grp.length || 0) * totalQty);
+                  addSteel(spec.id, grp.count * effectiveLength * spec.weight * 1.05);
+                }
               });
             } else {
              const mainSpec = STEEL_DATA[template.mainBarSize];
@@ -152,7 +164,26 @@ export default function App() {
 
       totalMaterialCost += templateMaterial;
       totalLaborCost += templateLabor;
-      return { ...template, cost: templateMaterial + templateLabor, materialCost: templateMaterial, laborCost: templateLabor, totalLength, totalQty, instances: myInstances };
+
+      // Detailed Breakdown for Takeoff
+      const groupedByLength = myInstances.reduce((acc, inst) => {
+        const len = (inst.length || 0).toFixed(2);
+        if (!acc[len]) acc[len] = { length: parseFloat(len), count: 0, instances: [] };
+        acc[len].count += 1;
+        acc[len].instances.push(inst);
+        return acc;
+      }, {});
+
+      return { 
+        ...template, 
+        cost: templateMaterial + templateLabor, 
+        materialCost: templateMaterial, 
+        laborCost: templateLabor, 
+        totalLength, 
+        totalQty, 
+        instances: myInstances,
+        groupedInstances: Object.values(groupedByLength).sort((a,b) => b.length - a.length)
+      };
     });
 
     const directCost = totalMaterialCost + totalLaborCost;
@@ -233,6 +264,15 @@ export default function App() {
           onSave={handleSaveProject}
           onOpen={() => projectFileInputRef.current?.click()}
           onNew={handleNewProject}
+          user={user}
+          isSyncing={isSyncing}
+          lastSync={lastSync}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onSignOut={() => signOut()}
+        />
+        <AuthModal 
+          isOpen={isAuthOpen} 
+          onClose={() => setIsAuthOpen(false)} 
         />
         <input 
           type="file" 
@@ -253,9 +293,12 @@ export default function App() {
              <button onClick={() => setActiveTab('report')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'report' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
                <FileText className="w-3.5 h-3.5" /> 3. PROJECT REPORT
              </button>
-             <button onClick={() => setActiveTab('procurement')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'procurement' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
-               <ShoppingCart className="w-3.5 h-3.5" /> 4. MATERIAL LIST
-             </button>
+              <button onClick={() => setActiveTab('procurement')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'procurement' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+                <ShoppingCart className="w-3.5 h-3.5" /> 4. MATERIAL LIST
+              </button>
+              <button onClick={() => setActiveTab('takeoff')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'takeoff' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+                <ListTree className="w-3.5 h-3.5" /> 5. DETAILED TAKEOFF
+              </button>
           </div>
         </div>
 
@@ -304,6 +347,9 @@ export default function App() {
             )}
             {activeTab === 'procurement' && (
               <ProcurementSummary projectSummary={projectSummary} />
+            )}
+            {activeTab === 'takeoff' && (
+              <DetailedTakeoff projectSummary={projectSummary} />
             )}
           </div>
         </div>

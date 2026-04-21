@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { ShoppingCart, Package, Info, CheckCircle2, ChevronRight, Hash, Ruler } from 'lucide-react';
 import { STEEL_DATA, WIRE_MESH_DATA } from '../lib/constants';
 import Tooltip from './Tooltip';
@@ -93,32 +94,36 @@ export default function ProcurementSummary({ projectSummary }) {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {steelItems.map(item => (
-                  <div key={item.key} className="group relative bg-white border border-slate-200 rounded-sm p-5 hover:border-blue-500 hover:shadow-2xl transition-all duration-300 overflow-hidden">
-                     <div className="flex items-center justify-between mb-4">
-                        <div className="flex flex-col">
-                           <span className="text-xl font-black text-slate-900 font-mono tracking-tighter">{item.label}</span>
-                           <span className="text-[9px] font-bold text-slate-400 uppercase">Grade SD30/SD40</span>
-                        </div>
-                        <div className="w-10 h-10 bg-slate-50 rounded-sm border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                           <Hash className="w-5 h-5" />
-                        </div>
-                     </div>
-                     
-                     <div className="flex items-end justify-between gap-4">
-                        <div className="space-y-1 shrink-0">
-                           <div className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                              Weight <ChevronRight className="w-2.5 h-2.5" /> 
-                           </div>
-                           <div className="text-sm font-black text-slate-600 truncate">{item.totalWeight.toLocaleString(undefined, { maximumFractionDigits: 1 })} kg</div>
-                        </div>
-                        <div className="text-right">
-                           <div className="text-[24px] md:text-[28px] font-black text-slate-900 leading-tight flex items-baseline gap-1 group-hover:text-blue-600 transition-colors">
-                              {item.barCount} <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Bars</span>
-                           </div>
-                        </div>
-                     </div>
-                     <div className="absolute bottom-0 left-0 h-1 bg-blue-600 transition-all duration-300 w-0 group-hover:w-full" />
-                  </div>
+                    <div key={item.key} className="group relative bg-white border border-slate-200 rounded-sm p-6 hover:border-blue-500 hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                       <div className="flex items-center justify-between mb-6">
+                          <div className="flex flex-col">
+                             <span className="text-2xl font-black text-slate-900 font-mono tracking-tighter uppercase">{item.label}</span>
+                             <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm w-fit mt-1">Ordering Unit: {barLength}M Bar</span>
+                          </div>
+                          <div className="w-12 h-12 bg-slate-900 rounded-sm flex items-center justify-center text-white shadow-lg">
+                             <Hash className="w-6 h-6" />
+                          </div>
+                       </div>
+                       
+                       <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div className="p-3 bg-slate-50 rounded-sm border border-slate-100">
+                             <div className="text-[9px] font-black text-slate-400 uppercase mb-1">Total Weight</div>
+                             <div className="text-md font-black text-slate-700">{item.totalWeight.toLocaleString(undefined, { maximumFractionDigits: 1 })} kg</div>
+                          </div>
+                          <div className="p-3 bg-slate-50 rounded-sm border border-slate-100">
+                             <div className="text-[9px] font-black text-slate-400 uppercase mb-1">Total Length</div>
+                             <div className="text-md font-black text-slate-700">{(item.totalWeight / item.weight).toLocaleString(undefined, { maximumFractionDigits: 1 })} m</div>
+                          </div>
+                       </div>
+
+                       <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Order Quantity</div>
+                          <div className="text-[32px] font-black text-slate-900 leading-tight flex items-baseline gap-2 group-hover:text-blue-600 transition-colors">
+                             {item.barCount} <span className="text-sm font-black text-slate-400 uppercase tracking-widest">Bars</span>
+                          </div>
+                       </div>
+                       <div className="absolute bottom-0 left-0 h-1.5 bg-blue-600 transition-all duration-300 w-0 group-hover:w-full" />
+                    </div>
                 ))}
                 {steelItems.length === 0 && (
                    <div className="col-span-2 py-12 text-center border-2 border-dashed border-slate-100 rounded-sm">

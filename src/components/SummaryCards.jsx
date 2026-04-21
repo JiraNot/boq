@@ -12,10 +12,16 @@ import {
   ChevronRight,
   Save,
   FolderOpen,
-  FilePlus
+  FilePlus,
+  User,
+  Cloud
 } from 'lucide-react';
+import CloudSyncStatus from './CloudSyncStatus';
 
-export function Header({ projectSummary, onExportPDF, onOpenSettings, onSave, onOpen, onNew }) {
+export function Header({ 
+  projectSummary, onExportPDF, onOpenSettings, onSave, onOpen, onNew,
+  user, isSyncing, lastSync, onOpenAuth, onSignOut 
+}) {
   const { totalSale, margin, directCost, resourceTotals } = projectSummary;
   const marginPercent = ((margin / (totalSale || 1)) * 100).toFixed(1);
 
@@ -38,6 +44,15 @@ export function Header({ projectSummary, onExportPDF, onOpenSettings, onSave, on
                <span className="text-sm font-black text-slate-800">฿{totalSale.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
          </div>
+
+          {/* CLOUD STATUS */}
+          <div className="hidden lg:block border-r border-slate-100 pr-4">
+            <CloudSyncStatus 
+              isSyncing={isSyncing} 
+              lastSync={lastSync} 
+              isAuthenticated={!!user} 
+            />
+          </div>
 
          <div className="flex items-center gap-2 pr-4 border-r border-slate-100">
             <div className="whitespace-nowrap">
@@ -96,6 +111,32 @@ export function Header({ projectSummary, onExportPDF, onOpenSettings, onSave, on
           >
             <Download className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" /> PDF REPORT
           </button>
+
+          <div className="w-px h-8 bg-slate-200 mx-1 md:mx-2" />
+
+          {/* USER ACTIONS */}
+          {user ? (
+            <div className="flex items-center gap-2">
+               <div className="text-right hidden sm:block">
+                  <p className="text-[9px] font-black text-slate-900 leading-none truncate max-w-[100px]">{user.name || user.email}</p>
+                  <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Civil Engineer</p>
+               </div>
+               <button 
+                onClick={onSignOut}
+                className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all overflow-hidden"
+                title="Sign Out"
+               >
+                 <User className="w-4 h-4" />
+               </button>
+            </div>
+          ) : (
+            <button 
+              onClick={onOpenAuth}
+              className="flex items-center gap-2 px-4 py-2 text-[10px] font-black text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-sm transition-all uppercase tracking-widest border border-blue-100"
+            >
+               <Cloud className="w-3.5 h-3.5" /> Cloud Sync
+            </button>
+          )}
        </div>
     </div>
   );

@@ -34,6 +34,36 @@ export default function LayoutCanvas({
   const [isRefVisible, setIsRefVisible] = useState(true);
   const SNAP_FINE = 0.02;
 
+  const handleZoom = (factor, mouseX, mouseY) => {
+    setViewBox(prev => {
+      const newW = prev.w * factor;
+      const newH = prev.h * factor;
+      
+      // If mouse coordinates are provided, zoom relative to mouse
+      // Otherwise zoom relative to center
+      const focusX = mouseX !== undefined ? mouseX : prev.x + prev.w / 2;
+      const focusY = mouseY !== undefined ? mouseY : prev.y + prev.h / 2;
+
+      const newX = focusX - (focusX - prev.x) * factor;
+      const newY = focusY - (focusY - prev.y) * factor;
+
+      return { x: newX, y: newY, w: newW, h: newH };
+    });
+  };
+
+  const handleFitScreen = () => {
+    if (items.length === 0) {
+      setViewBox({ x: -10, y: -10, w: 40, h: 40 });
+      return;
+    }
+    const xMin = Math.min(...items.flatMap(i => [i.x1, i.x2]));
+    const xMax = Math.max(...items.flatMap(i => [i.x1, i.x2]));
+    const yMin = Math.min(...items.flatMap(i => [i.y1, i.y2]));
+    const yMax = Math.max(...items.flatMap(i => [i.y1, i.y2]));
+    const padding = 5;
+    setViewBox({ x: xMin - padding, y: yMin - padding, w: (xMax - xMin) + padding * 2, h: (yMax - yMin) + padding * 2 });
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -66,6 +96,19 @@ export default function LayoutCanvas({
           setSelectedId(null);
         }
       }
+      // ZOOM SHORTCUTS
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        handleZoom(0.9);
+      }
+      if (e.key === '-') {
+        e.preventDefault();
+        handleZoom(1.1);
+      }
+      if (e.key === '0') {
+        e.preventDefault();
+        handleFitScreen();
+      }
     };
     const handleKeyUp = (e) => {
       if (e.code === 'Space') setIsPanning(false);
@@ -93,7 +136,7 @@ export default function LayoutCanvas({
     let finalY = Math.round(transformed.y / SNAP_FINE) * SNAP_FINE;
 
     if (isMagnetActive) {
-      const snapRadius = 0.4;
+      const snapRadius = 0.6; // Increased from 0.4
       for (const item of items) {
         if (Math.sqrt(Math.pow(transformed.x - item.x1, 2) + Math.pow(transformed.y - item.y1, 2)) < snapRadius) {
           finalX = item.x1; finalY = item.y1; break;
@@ -124,11 +167,19 @@ export default function LayoutCanvas({
     }
 
     if (drawMode === 'beam') {
+      // RIGHT CLICK TO CANCEL/FINISH CHAIN
+      if (e.button === 2) {
+        e.preventDefault();
+        setDrawingSession(null);
+        return;
+      }
+
       if (!drawingSession) {
         setDrawingSession({ x1: x, y1: y });
       } else {
         addInstance(selectedTemplateId, drawingSession.x1, drawingSession.y1, x, y);
-        setDrawingSession(null);
+        // CHAIN DRAWING: Set head to current tail
+        setDrawingSession({ x1: x, y1: y });
       }
       setIsPanning(true);
       setLastPos({ x: clientX, y: clientY });
@@ -206,27 +257,6 @@ export default function LayoutCanvas({
     }
   };
 
-  const zoom = (factor) => {
-    setViewBox(prev => {
-      const newW = prev.w * factor;
-      const newH = prev.h * factor;
-      return { ...prev, w: newW, h: newH, x: prev.x + (prev.w - newW) / 2, y: prev.y + (prev.h - newH) / 2 };
-    });
-  };
-
-  const fitView = () => {
-    if (items.length === 0) {
-      setViewBox({ x: -10, y: -10, w: 40, h: 40 });
-      return;
-    }
-    const xMin = Math.min(...items.flatMap(i => [i.x1, i.x2]));
-    const xMax = Math.max(...items.flatMap(i => [i.x1, i.x2]));
-    const yMin = Math.min(...items.flatMap(i => [i.y1, i.y2]));
-    const yMax = Math.max(...items.flatMap(i => [i.y1, i.y2]));
-    const padding = 5;
-    setViewBox({ x: xMin - padding, y: yMin - padding, w: (xMax - xMin) + padding * 2, h: (yMax - yMin) + padding * 2 });
-  };
-
   const handleNodeDrag = (clientX, clientY, itemId, node) => {
     setIsDraggingNode({ itemId, node });
   };
@@ -286,6 +316,18 @@ export default function LayoutCanvas({
             <button onClick={() => { setDrawMode('eraser'); setDrawingSession(null); }} className={`p-2 rounded-sm ${drawMode === 'eraser' ? 'bg-red-600 text-white' : 'hover:bg-slate-100 text-slate-500'}`}>
                <Eraser className="w-5 h-5" />
             </button>
+         </Tooltip>
+
+         <div className="w-px h-8 bg-slate-200 mx-1 md:mx-2" />
+
+         <Tooltip text="Zoom In" subtext="ขยายหน้าจอ">
+            <button onClick={() => handleZoom(0.9)} className="p-2 rounded-sm hover:bg-slate-100 text-slate-500"><ZoomIn className="w-5 h-5" /></button>
+         </Tooltip>
+         <Tooltip text="Zoom Out" subtext="ย่อหน้าจอ">
+            <button onClick={() => handleZoom(1.1)} className="p-2 rounded-sm hover:bg-slate-100 text-slate-500"><ZoomOut className="w-5 h-5" /></button>
+         </Tooltip>
+         <Tooltip text="Fit Screen" subtext="แสดงทั้งหมด (กด 0)">
+            <button onClick={handleFitScreen} className="p-2 rounded-sm hover:bg-slate-100 text-slate-500"><Target className="w-5 h-5" /></button>
          </Tooltip>
 
          <div className="w-px h-8 bg-slate-200 mx-1 md:mx-2" />
@@ -498,6 +540,7 @@ export default function LayoutCanvas({
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
         className="w-full h-full touch-none"
+        onContextMenu={(e) => e.preventDefault()}
         onMouseDown={handlePointerDown}
         onMouseMove={handlePointerMove}
         onMouseUp={() => { setIsDraggingNode(null); setIsDraggingObject(null); setIsPanning(false); }}
@@ -596,15 +639,33 @@ export default function LayoutCanvas({
               
               {!isColumn && (
                 <>
-                <circle cx={item.x1} cy={item.y1} r="0.6" fill="transparent" className="cursor-nwse-resize" onMouseDown={(e) => { e.stopPropagation(); handleNodeDrag(e.clientX, e.clientY, item.id, 'start') }} />
-                <circle cx={item.x1} cy={item.y1} r="0.2" fill="white" stroke="var(--primary)" strokeWidth="0.08" className="pointer-events-none" />
-                
-                <circle cx={item.x2} cy={item.y2} r="0.6" fill="transparent" className="cursor-nwse-resize" onMouseDown={(e) => { e.stopPropagation(); handleNodeDrag(e.clientX, e.clientY, item.id, 'end') }} />
+                 <circle 
+                   cx={item.x1} cy={item.y1} r="0.6" fill="transparent" 
+                   className="cursor-nwse-resize" 
+                   onMouseDown={(e) => { 
+                     if (drawMode === 'select') {
+                       e.stopPropagation(); 
+                       handleNodeDrag(e.clientX, e.clientY, item.id, 'start');
+                     }
+                   }} 
+                 />
+                 <circle cx={item.x1} cy={item.y1} r="0.2" fill="white" stroke="var(--primary)" strokeWidth="0.08" className="pointer-events-none" />
+                 
+                 <circle 
+                   cx={item.x2} cy={item.y2} r="0.6" fill="transparent" 
+                   className="cursor-nwse-resize" 
+                   onMouseDown={(e) => { 
+                     if (drawMode === 'select') {
+                        e.stopPropagation(); 
+                        handleNodeDrag(e.clientX, e.clientY, item.id, 'end');
+                     }
+                   }} 
+                 />
                 <circle cx={item.x2} cy={item.y2} r="0.2" fill="white" stroke="var(--primary)" strokeWidth="0.08" className="pointer-events-none" />
                 </>
               )}
               {isColumn && (
-                <circle cx={item.x1} cy={item.y1} r="0.8" fill="transparent" className="cursor-move" onMouseDown={(e) => { e.stopPropagation(); handleNodeDrag(e.clientX, e.clientY, item.id, 'start') }} />
+                <circle cx={item.x1} cy={item.y1} r="0.8" fill="transparent" className="cursor-move" onMouseDown={(e) => { if (drawMode === 'select') { e.stopPropagation(); handleNodeDrag(e.clientX, e.clientY, item.id, 'start') } }} />
               )}
             </g>
           );

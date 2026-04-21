@@ -4,8 +4,9 @@ import { DEFAULT_ASSEMBLIES, STEEL_DATA, WIRE_MESH_DATA } from '../lib/constants
 import { useFieldArray } from 'react-hook-form';
 import Tooltip from './Tooltip';
 import RebarPreview from './RebarPreview';
+import LibraryModal from './LibraryModal';
 
-function RebarGroupEditor({ control, register, name, label, showLength = false }) {
+function RebarGroupEditor({ control, register, name, label, showLength = false, autoLabel = null }) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: name
@@ -28,7 +29,7 @@ function RebarGroupEditor({ control, register, name, label, showLength = false }
         {fields.length > 0 && (
           <div className="flex gap-1.5 px-1 border-b border-slate-100 pb-1">
              <span className="w-12 text-[8px] font-black text-slate-400 uppercase text-center">จำนวน</span>
-             {showLength && <span className="w-16 text-[8px] font-black text-slate-400 uppercase text-center">ยาว (m)</span>}
+             {(showLength || autoLabel) && <span className="w-16 text-[8px] font-black text-slate-400 uppercase text-center">ยาว (m)</span>}
              <span className="flex-1 text-[8px] font-black text-slate-400 uppercase ml-2">ขนาดเหล็ก</span>
           </div>
         )}
@@ -41,7 +42,7 @@ function RebarGroupEditor({ control, register, name, label, showLength = false }
               placeholder="Qty"
               title="จำนวนเส้น"
             />
-            {showLength && (
+            {showLength ? (
               <input 
                 type="number" 
                 step="0.01" 
@@ -50,7 +51,11 @@ function RebarGroupEditor({ control, register, name, label, showLength = false }
                 placeholder="Length"
                 title="ความยาวเหล็กเสริม (m)"
               />
-            )}
+            ) : autoLabel ? (
+              <div className="w-16 bg-blue-50 border border-blue-100 rounded-sm py-1 text-[8px] font-black text-blue-600 text-center flex items-center justify-center">
+                 {autoLabel}
+              </div>
+            ) : null}
             <select 
               {...register(`${name}.${index}.size`)} 
               className="flex-1 admin-input py-1 font-bold text-[11px]"
@@ -79,8 +84,18 @@ function RebarGroupEditor({ control, register, name, label, showLength = false }
 
 export default function TemplateManager({ templates: fields, append, remove, register, setValue, watch, control }) {
   const [expandedId, setExpandedId] = useState(fields[0]?.id || null);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [showExtraRebar, setShowExtraRebar] = useState({}); // { id: boolean }
   const watchedTemplates = watch ? watch('templates') : [];
+
+  const handleImportFromLibrary = (preset) => {
+    const newTemplate = {
+      ...preset,
+      id: `t-lib-${Date.now()}`,
+    };
+    append(newTemplate);
+    setExpandedId(newTemplate.id);
+  };
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
@@ -282,37 +297,63 @@ export default function TemplateManager({ templates: fields, append, remove, reg
                        ) : (
                           <div className="space-y-6">
                             {isBeam ? (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 <RebarGroupEditor control={control} register={register} name={`templates.${index}.topBars`} label="Main Top Reinforcement (เหล็กยืนบน)" />
-                                 <RebarGroupEditor control={control} register={register} name={`templates.${index}.bottomBars`} label="Main Bottom Reinforcement (เหล็กยืนล่าง)" />
-                              </div>
-                            ) : (
-                              <div className="space-y-1.5">
-                                 <label className="admin-label">Main Vertical Rebar</label>
-                                 <div className="flex gap-2">
-                                    <input type="number" {...register(`templates.${index}.mainBarCount`, { valueAsNumber: true })} className="w-20 admin-input text-center font-black text-lg" />
-                                    <select {...register(`templates.${index}.mainBarSize`)} className="flex-1 admin-input font-bold text-lg">
-                                       {Object.entries(STEEL_DATA).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                                    </select>
-                                 </div>
-                              </div>
-                            )}
-
-                             {isBeam && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => toggleExtraRebar(field.id)}
-                                  className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest bg-blue-50 px-3 py-1.5 rounded-sm w-fit"
-                                >
-                                   {showExtraRebar[field.id] ? '− Hide Special Reinforcement' : '+ Add Special Reinforcement (เสริมพิเศษ)'}
-                                </button>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <RebarGroupEditor control={control} register={register} name={`templates.${index}.topBars`} label="Main Top Reinforcement (เหล็กยืนบน)" />
+                                  <RebarGroupEditor control={control} register={register} name={`templates.${index}.bottomBars`} label="Main Bottom Reinforcement (เหล็กยืนล่าง)" />
+                               </div>
+                             ) : (
+                               <div className="space-y-1.5">
+                                  <label className="admin-label">Main Vertical Rebar</label>
+                                  <div className="flex gap-2">
+                                     <input type="number" {...register(`templates.${index}.mainBarCount`, { valueAsNumber: true })} className="w-20 admin-input text-center font-black text-lg" />
+                                     <select {...register(`templates.${index}.mainBarSize`)} className="flex-1 admin-input font-bold text-lg">
+                                        {Object.entries(STEEL_DATA).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                     </select>
+                                  </div>
+                               </div>
                              )}
 
-                             {isBeam && showExtraRebar[field.id] && (
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <RebarGroupEditor control={control} register={register} name={`templates.${index}.supportBars`} label="Support Reinforcement (เสริมพิเศษหัวเสา)" showLength={true} />
-                                    <RebarGroupEditor control={control} register={register} name={`templates.${index}.spanBars`} label="Span Reinforcement (เสริมพิเศษกลางคาน)" showLength={true} />
-                                 </div>
+                             {isBeam && (
+                                <div className="flex flex-col gap-4">
+                                  <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-sm border border-blue-100">
+                                     <button 
+                                       type="button" 
+                                       onClick={() => toggleExtraRebar(field.id)}
+                                       className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest"
+                                     >
+                                        {showExtraRebar[field.id] ? '− Hide Special Reinforcement' : '+ Add Special Reinforcement (เสริมพิเศษ)'}
+                                     </button>
+                                     {showExtraRebar[field.id] && (
+                                       <label className="flex items-center gap-2 cursor-pointer group">
+                                          <input 
+                                            type="checkbox" 
+                                            {...register(`templates.${index}.useZonedReinforcement`)}
+                                            className="w-3.5 h-3.5 rounded-sm border-blue-300 text-blue-600 focus:ring-blue-500"
+                                          />
+                                          <span className="text-[10px] font-bold text-blue-800 uppercase tracking-tighter group-hover:text-blue-600 transition-colors">Auto-Calculate lengths (L/4 Standard)</span>
+                                       </label>
+                                     )}
+                                  </div>
+
+                                  {showExtraRebar[field.id] && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
+                                       <RebarGroupEditor 
+                                          control={control} register={register} 
+                                          name={`templates.${index}.supportBars`} 
+                                          label="Support Reinforcement (เสริมพิเศษหัวเสา)" 
+                                          showLength={!template.useZonedReinforcement} 
+                                          autoLabel={template.useZonedReinforcement ? "Auto (2 x L/4)" : null}
+                                       />
+                                       <RebarGroupEditor 
+                                          control={control} register={register} 
+                                          name={`templates.${index}.spanBars`} 
+                                          label="Span Reinforcement (เสริมพิเศษกลางคาน)" 
+                                          showLength={!template.useZonedReinforcement}
+                                          autoLabel={template.useZonedReinforcement ? "Auto (L/2)" : null}
+                                       />
+                                    </div>
+                                  )}
+                                </div>
                               )}
 
                              <div className="bg-white p-4 rounded-sm border border-slate-200 space-y-4 shadow-sm">
