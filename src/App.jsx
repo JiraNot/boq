@@ -98,7 +98,13 @@ export default function App() {
 
       if (assembly.hasRebar) {
         if (assembly.isSlab) {
-           const totalArea = template.width * totalLength;
+           // REVT-STYLE: Calculate area from rectangle coordinates
+           const totalArea = myInstances.reduce((sum, inst) => {
+              const w = Math.abs(inst.x2 - inst.x1);
+              const h = Math.abs(inst.y2 - inst.y1);
+              return sum + (w * h);
+           }, 0);
+
            if (template.slabRebarType === 'WIREMESH') {
               const meshSpec = WIRE_MESH_DATA[template.slabWireMeshSize];
               if (meshSpec) addSteel(meshSpec.id, totalArea * 1.10 * meshSpec.weightPerSqm);
@@ -191,29 +197,42 @@ export default function App() {
     return { calculatedTemplates: templateSummaries, resourceTotals, totalMaterialCost, totalLaborCost, directCost, totalSale, margin: totalSale - directCost };
   }, [watchTemplates, watchInstances, compositeFactorF]);
 
-  const updateInstanceLayout = (id, updates) => {
+  const updateInstanceLayout = React.useCallback((id, updates) => {
     const index = watchInstances.findIndex(i => i.id === id);
     if (index !== -1) {
       updateInstance(index, { ...watchInstances[index], ...updates });
     }
-  };
+  }, [watchInstances, updateInstance]);
 
-  const deleteInstance = (id) => {
+  const deleteInstance = React.useCallback((id) => {
     const index = watchInstances.findIndex(inst => inst.id === id);
     if (index !== -1) {
       removeInstance(index);
     }
-  };
+  }, [watchInstances, removeInstance]);
 
-  const addInstance = (templateId, x1=0, y1=0, x2=2, y2=0) => {
+  const addInstance = React.useCallback((templateId, x1=0, y1=0, x2=2, y2=0) => {
+    const template = watchTemplates.find(t => t.id === templateId);
+    const isSlab = template?.assemblyId === 'a3';
     const dist = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    
     appendInstance({
       id: `inst-${Date.now()}`,
       templateId, x1, y1, x2, y2, 
-      length: Math.round(dist * 100) / 100,
+      type: isSlab ? 'slab' : 'line',
+      length: isSlab ? 0 : Math.round(dist * 100) / 100,
       isPlaced: true
     });
-  };
+  }, [watchTemplates, appendInstance]);
+
+  const setRefImageValue = React.useCallback((key, val) => setValue(key, val), [setValue]);
+
+  const memoizedInstances = React.useMemo(() => {
+    return watchInstances.map(inst => ({
+      ...inst,
+      name: watchTemplates.find(t => t.id === inst.templateId)?.name
+    }));
+  }, [watchInstances, watchTemplates]);
 
   const handleSaveProject = () => {
     const json = JSON.stringify(data, null, 2);
@@ -308,7 +327,7 @@ export default function App() {
             {activeTab === 'layout' && (
                <div className="space-y-8 page-transition">
                   <LayoutCanvas 
-                    items={watchInstances.map(inst => ({ ...inst, name: watchTemplates.find(t => t.id === inst.templateId)?.name }))} 
+                    items={memoizedInstances} 
                     updateItem={updateInstanceLayout} 
                     deleteItem={deleteInstance}
                     templates={watchTemplates}
@@ -318,7 +337,8 @@ export default function App() {
                     refImageY={data.refImageY}
                     refImageScale={data.refImageScale}
                     refImageOpacity={data.refImageOpacity}
-                    setRefImageValue={setValue}
+                    isRefImageLocked={data.isRefImageLocked}
+                    setRefImageValue={setRefImageValue}
                   />
                   <div className="pt-4 border-t border-slate-200">
                     <TemplateManager templates={templates} append={appendTemplate} remove={removeTemplate} register={register} setValue={setValue} watch={form.watch} control={control} />

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Layers, Plus, Copy, Trash2, Settings2, Box, ArrowDownWideNarrow, ChevronDown, ChevronUp, Construction, Ruler, Eye, LayoutGrid } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Layers, Plus, Copy, Trash2, Settings2, Box, ArrowDownWideNarrow, ChevronDown, ChevronUp, Construction, Ruler, Eye, LayoutGrid, Layout } from 'lucide-react';
 import { DEFAULT_ASSEMBLIES, STEEL_DATA, WIRE_MESH_DATA } from '../lib/constants';
 import { useFieldArray } from 'react-hook-form';
 import Tooltip from './Tooltip';
@@ -82,7 +83,7 @@ function RebarGroupEditor({ control, register, name, label, showLength = false, 
   );
 }
 
-export default function TemplateManager({ templates: fields, append, remove, register, setValue, watch, control }) {
+const TemplateManager = React.memo(({ templates: fields, append, remove, register, setValue, watch, control }) => {
   const [expandedId, setExpandedId] = useState(fields[0]?.id || null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [showExtraRebar, setShowExtraRebar] = useState({}); // { id: boolean }
@@ -136,24 +137,27 @@ export default function TemplateManager({ templates: fields, append, remove, reg
         </div>
         <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-sm border border-slate-200">
           <Tooltip text="Add Column" subtext="เพิ่มมาตราฐานเสาต้นใหม่">
-            <button onClick={() => addSpec('a1')} className="flex items-center gap-1.5 bg-white text-slate-700 px-3 py-2 rounded-sm text-[10px] font-black shadow-sm hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest">
+            <button type="button" onClick={() => addSpec('a1')} className="flex items-center gap-1.5 bg-white text-slate-700 px-3 py-2 rounded-sm text-[10px] font-black shadow-sm hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest">
               <Plus className="w-3 h-3" /> Column
             </button>
           </Tooltip>
           <Tooltip text="Add Beam" subtext="เพิ่มมาตราฐานคานใหม่">
-            <button onClick={() => addSpec('a2')} className="flex items-center gap-1.5 bg-white text-slate-700 px-3 py-2 rounded-sm text-[10px] font-black shadow-sm hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest">
+            <button type="button" onClick={() => addSpec('a2')} className="flex items-center gap-1.5 bg-white text-slate-700 px-3 py-2 rounded-sm text-[10px] font-black shadow-sm hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest">
               <Plus className="w-3 h-3" /> Beam
             </button>
           </Tooltip>
           <Tooltip text="Add Slab" subtext="เพิ่มมาตราฐานพื้นใหม่">
-            <button onClick={() => addSpec('a3')} className="flex items-center gap-1.5 bg-white text-slate-700 px-3 py-2 rounded-sm text-[10px] font-black shadow-sm hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest">
+            <button type="button" onClick={() => addSpec('a3')} className="flex items-center gap-1.5 bg-white text-slate-700 px-3 py-2 rounded-sm text-[10px] font-black shadow-sm hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest">
               <Plus className="w-3 h-3" /> Slab
             </button>
           </Tooltip>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+      <motion.div 
+        layout
+        className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6"
+      >
         {fields.map((field, index) => {
           const isExpanded = expandedId === field.id;
           const template = watchedTemplates[index] || field;
@@ -163,13 +167,16 @@ export default function TemplateManager({ templates: fields, append, remove, reg
           const isColumn = assemblyId === 'a1';
 
           return (
-            <div 
-              key={field.id} 
-              className={`
-                admin-card transition-all duration-300 overflow-hidden flex flex-col
-                ${isExpanded ? 'lg:col-span-2 2xl:col-span-2 ring-2 ring-blue-600 shadow-2xl bg-white scale-[1.01]' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}
-              `}
-            >
+             <motion.div 
+               layout
+               key={field.id} 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className={`
+                 admin-card transition-all duration-300 overflow-hidden flex flex-col
+                 ${isExpanded ? 'lg:col-span-2 2xl:col-span-2 ring-2 ring-blue-600 shadow-2xl bg-white scale-[1.01]' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}
+               `}
+             >
               <div 
                 className={`p-4 flex items-center justify-between cursor-pointer transition-colors ${isExpanded ? 'bg-slate-900 text-white' : 'hover:bg-slate-100/50'}`}
                 onClick={() => toggleExpand(field.id)}
@@ -199,6 +206,7 @@ export default function TemplateManager({ templates: fields, append, remove, reg
                   </div>
                   <Tooltip text="Duplicate" subtext="คัดลอกมาตรฐานนี้และรันเลข ID ถัดไป">
                     <button 
+                      type="button"
                       onClick={(e) => { 
                         e.stopPropagation(); 
                         const prefix = DEFAULT_ASSEMBLIES.find(a => a.id === template.assemblyId)?.prefix || 'X';
@@ -213,6 +221,7 @@ export default function TemplateManager({ templates: fields, append, remove, reg
                   </Tooltip>
                   <Tooltip text="Delete" subtext="ลบมาตรฐานนี้ออกจาก Library">
                     <button 
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); remove(index); }} 
                       className={`p-2 rounded-sm transition-colors ${isExpanded ? 'hover:bg-red-500 text-slate-400 hover:text-white' : 'text-slate-300 hover:text-red-500'}`}
                     >
@@ -246,10 +255,19 @@ export default function TemplateManager({ templates: fields, append, remove, reg
                                {DEFAULT_ASSEMBLIES.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </select>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="admin-label">Width (m)</label>
-                          <input type="number" step="0.01" {...register(`templates.${index}.width`, { valueAsNumber: true })} className="admin-input py-2 font-black" />
-                        </div>
+                        {!isSlab ? (
+                          <div className="space-y-1.5">
+                            <label className="admin-label">Width (m)</label>
+                            <input type="number" step="0.01" {...register(`templates.${index}.width`, { valueAsNumber: true })} className="admin-input py-2 font-black" />
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5 opacity-60">
+                            <label className="admin-label">Drawing Mode</label>
+                            <div className="admin-input py-2 bg-slate-100 flex items-center gap-2 text-blue-600 font-black italic">
+                               <Layout className="w-3.5 h-3.5" /> RECTANGLE AREA
+                            </div>
+                          </div>
+                        )}
                         <div className="space-y-1.5">
                           <label className="admin-label">{isSlab ? 'Thickness (m)' : 'Depth (m)'}</label>
                           <input type="number" step="0.01" {...register(`templates.${index}.depth`, { valueAsNumber: true })} className="admin-input py-2 font-black" />
@@ -429,10 +447,12 @@ export default function TemplateManager({ templates: fields, append, remove, reg
                   </div>
                 </div>
               )}
-            </div>
+             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
-}
+});
+
+export default TemplateManager;

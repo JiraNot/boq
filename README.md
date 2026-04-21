@@ -3,11 +3,11 @@
 A high-fidelity React application designed for rapid structural steel estimation and civil engineering takeoffs. Use the plan-first workspace to draw beams, columns, and slabs, then instantly generate a professional BOQ with accurate material weights and cost distributions.
 
 ## 🚀 Navigation Control
-- **Plan Takeoff**: High-fidelity "Chain Drawing" engine with professional snapping, **Reference Trace Overlay**, and right-click cancel.
+- **Plan Takeoff**: High-fidelity "Chain Drawing" engine with professional snapping, **Revit-Style Image Calibration**, **Quick Template Switcher**, and right-click cancel.
 - **BOQ Summary**: Real-time material aggregation, **Detailed Itemized Takeoff**, and Factor F markup calculation.
 - **Procurement Engine**: Automated conversion from material weight to **Commercial Bar Pieces** (10m/12m units).
 - **Zoned Reinforcement**: Professional L/4 beam reinforcement zoning for automated standard takeoffs.
-- **Project File Management**: Save and open projects locally with `.boq` files.
+- **Project File Management**: Save and open projects locally with `.boq` files, now with memoized performance stability.
 - **Project Report**: High-level data visualization of cost and resources.
 
 ## 📂 Project Documentation (Mission Control)

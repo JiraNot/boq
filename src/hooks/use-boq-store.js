@@ -65,6 +65,7 @@ const boqV2Schema = z.object({
   refImageY: z.number().default(0),
   refImageScale: z.number().min(0.001).default(1),
   refImageOpacity: z.number().min(0).max(1).default(0.5),
+  isRefImageLocked: z.boolean().default(true),
 });
 
 const DEFAULT_TEMPLATES = [
@@ -140,7 +141,8 @@ export function useBoqStore() {
       refImageX: 0,
       refImageY: 0,
       refImageScale: 1,
-      refImageOpacity: 0.5
+      refImageOpacity: 0.5,
+      isRefImageLocked: true
     };
   };
 

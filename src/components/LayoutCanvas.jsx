@@ -2,14 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MousePointer2, Hand, Square, Circle as CircleIcon, Eraser, Maximize2, Minimize2, 
-  ZoomIn, ZoomOut, Target, Trash, Magnet, Construction, Image as ImageIcon, Settings2, Sliders, X, Eye, EyeOff, Trash2, Compass
+  ZoomIn, ZoomOut, Target, Trash, Magnet, Construction, Image as ImageIcon, Settings2, Sliders, X, Eye, EyeOff, Trash2, Compass, Layout, Ruler, ChevronDown, Check
 } from 'lucide-react';
 import Tooltip from './Tooltip';
 
-export default function LayoutCanvas({ 
+const LayoutCanvas = React.memo(({ 
   items, updateItem, deleteItem, templates, addInstance,
-  refImage, refImageX, refImageY, refImageScale, refImageOpacity, setRefImageValue
-}) {
+  refImage, refImageX, refImageY, refImageScale, refImageOpacity, isRefImageLocked, setRefImageValue
+}) => {
   const [viewBox, setViewBox] = useState({ x: -10, y: -10, w: 40, h: 40 });
   const [isDraggingNode, setIsDraggingNode] = useState(null); 
   const [isPanning, setIsPanning] = useState(false);
@@ -26,6 +26,8 @@ export default function LayoutCanvas({
   const [lengthInput, setLengthInput] = useState("");
   
   const [drawingSession, setDrawingSession] = useState(null); // { x1, y1 }
+  const [calibrationPoints, setCalibrationPoints] = useState(null); // null | [{x,y}, {x,y}]
+  const [isDraggingRefImage, setIsDraggingRefImage] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const svgRef = useRef(null);
@@ -154,7 +156,17 @@ export default function LayoutCanvas({
     const clientX = e.clientX || e.touches?.[0]?.clientX;
     const clientY = e.clientY || e.touches?.[0]?.clientY;
 
-    const { x, y } = getCoords(clientX, clientY);
+    const { x: rawX, y: rawY } = getCoords(clientX, clientY);
+    let x = rawX;
+    let y = rawY;
+
+    const orthoActive = isOrthoMode || isShiftDown;
+    if (orthoActive && drawingSession) {
+      const dx = Math.abs(rawX - drawingSession.x1);
+      const dy = Math.abs(rawY - drawingSession.y1);
+      if (dx > dy) { x = rawX; y = drawingSession.y1; }
+      else { x = drawingSession.x1; y = rawY; }
+    }
 
     if (drawMode === 'column') {
       addInstance(selectedTemplateId, x, y, x, y);
@@ -166,7 +178,7 @@ export default function LayoutCanvas({
        return;
     }
 
-    if (drawMode === 'beam') {
+    if (drawMode === 'beam' || drawMode === 'slab') {
       // RIGHT CLICK TO CANCEL/FINISH CHAIN
       if (e.button === 2) {
         e.preventDefault();
@@ -178,12 +190,42 @@ export default function LayoutCanvas({
         setDrawingSession({ x1: x, y1: y });
       } else {
         addInstance(selectedTemplateId, drawingSession.x1, drawingSession.y1, x, y);
-        // CHAIN DRAWING: Set head to current tail
-        setDrawingSession({ x1: x, y1: y });
+        // CHAIN DRAWING: Only for beams
+        if (drawMode === 'beam') {
+          setDrawingSession({ x1: x, y1: y });
+        } else {
+          setDrawingSession(null);
+        }
       }
       setIsPanning(true);
       setLastPos({ x: clientX, y: clientY });
       return;
+    }
+
+    if (drawMode === 'calibrate_image') {
+      if (!calibrationPoints) {
+        setCalibrationPoints([{ x: rawX, y: rawY }]);
+      } else {
+        const p1 = calibrationPoints[0];
+        const p2 = { x: rawX, y: rawY };
+        const distPixels = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        const realDist = parseFloat(prompt("Enter the actual distance in meters (เช่น 5.0):", "5.0"));
+        
+        if (!isNaN(realDist) && realDist > 0) {
+           const newScale = (realDist / distPixels) * refImageScale;
+           setRefImageValue('refImageScale', newScale);
+           alert(`Scale updated: ${newScale.toFixed(4)}`);
+        }
+        setCalibrationPoints(null);
+        setDrawMode('select');
+      }
+      return;
+    }
+
+    if (!isRefImageLocked && e.target.tagName === 'image') {
+       setIsDraggingRefImage(true);
+       setLastPos({ x: clientX, y: clientY });
+       return;
     }
 
     if (drawMode === 'select' && e.target === svgRef.current) {
@@ -202,6 +244,15 @@ export default function LayoutCanvas({
        const dx = (clientX - lastPos.x) * (viewBox.w / svgRef.current.clientWidth);
        const dy = (clientY - lastPos.y) * (viewBox.h / svgRef.current.clientHeight);
        setViewBox(prev => ({ ...prev, x: prev.x - dx, y: prev.y - dy }));
+       setLastPos({ x: clientX, y: clientY });
+       return;
+    }
+
+    if (isDraggingRefImage) {
+       const dx = (clientX - lastPos.x) * (viewBox.w / svgRef.current.clientWidth);
+       const dy = (clientY - lastPos.y) * (viewBox.h / svgRef.current.clientHeight);
+       setRefImageValue('refImageX', refImageX + dx);
+       setRefImageValue('refImageY', refImageY + dy);
        setLastPos({ x: clientX, y: clientY });
        return;
     }
@@ -300,9 +351,15 @@ export default function LayoutCanvas({
 
          <div className="w-px h-8 bg-slate-200 mx-1 md:mx-2" />
          
-         <Tooltip text="Draw Beam" subtext="คลิกเพื่อเริ่ม และคลิกอีกจุดเพื่อวางคาน">
+         <Tooltip text="Draw Beam" subtext="คลิกเพื่อเริ่ม และคลิกอีกจุดเพื่อวางคาน (ต่อเส้นอัตโนมัติ)">
             <button onClick={() => setDrawMode('beam')} className={`p-2 rounded-sm ${drawMode === 'beam' ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-500'}`}>
                <Square className="w-5 h-5" />
+            </button>
+         </Tooltip>
+
+         <Tooltip text="Draw Slab (Rectangle)" subtext="คลิกมุมที่ 1 และ 2 เพื่อวาดพื้นที่สี่เหลี่ยม">
+            <button onClick={() => setDrawMode('slab')} className={`p-2 rounded-sm ${drawMode === 'slab' ? 'bg-emerald-600 text-white' : 'hover:bg-slate-100 text-slate-500'}`}>
+               <Layout className="w-5 h-5" />
             </button>
          </Tooltip>
 
@@ -371,14 +428,55 @@ export default function LayoutCanvas({
          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
       </div>
 
+      {/* QUICK TEMPLATE SWITCHER (ON-CANVAS) */}
+      <AnimatePresence>
+        {selectedId && drawMode === 'select' && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-xl border border-slate-200 p-1.5 rounded-sm shadow-2xl flex items-center gap-1"
+          >
+             <div className="px-3 py-1.5 border-r border-slate-200">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tighter leading-none">Change Type</p>
+                <p className="text-[11px] font-black text-blue-600 truncate max-w-[120px]">
+                   {items.find(i => i.id === selectedId)?.name || 'Unknown'}
+                </p>
+             </div>
+             <div className="flex gap-1 px-1">
+                {templates.map(t => (
+                  <button 
+                    key={t.id}
+                    onClick={() => updateItem(selectedId, { templateId: t.id })}
+                    className={`px-3 py-2 rounded-sm text-[10px] font-black uppercase transition-all ${items.find(i => i.id === selectedId)?.templateId === t.id ? 'bg-blue-600 text-white shadow-lg scale-105' : 'hover:bg-slate-100 text-slate-600'}`}
+                  >
+                     {t.name.split(' ').pop()}
+                  </button>
+                ))}
+             </div>
+             <div className="w-px h-8 bg-slate-200 mx-1" />
+             <button 
+               onClick={() => { deleteItem(selectedId); setSelectedId(null); }}
+               className="p-2 text-red-500 hover:bg-red-50 rounded-sm transition-colors"
+               title="Delete Instance"
+             >
+                <Trash2 className="w-4 h-4" />
+             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* REFERENCE IMAGE SETTINGS FLOATING PANEL */}
       <AnimatePresence>
         {isRefSettingsOpen && refImage && (
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="absolute top-20 left-4 z-40 bg-white/95 backdrop-blur-md p-5 rounded-sm shadow-2xl border border-slate-200 w-72 space-y-5"
+            layout
+            initial={{ opacity: 0, x: -20, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="absolute top-20 left-4 z-40 bg-white/95 backdrop-blur-2xl p-5 rounded-sm shadow-2xl border border-slate-200 w-72 space-y-5"
           >
              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
@@ -404,47 +502,52 @@ export default function LayoutCanvas({
 
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Scale Size</label>
-                      <input 
-                        type="number" step="0.01" 
-                        value={refImageScale} 
-                        onChange={(e) => setRefImageValue('refImageScale', parseFloat(e.target.value))} 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs font-black"
-                      />
+                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Scale Size</label>
+                       <div className="relative">
+                          <input 
+                            type="number" step="0.0001" 
+                            value={refImageScale} 
+                            onChange={(e) => setRefImageValue('refImageScale', parseFloat(e.target.value))} 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs font-black pr-10"
+                          />
+                          <button 
+                            onClick={() => { setDrawMode('calibrate_image'); setIsRefSettingsOpen(false); }}
+                            className="absolute right-1 top-1 p-1.5 bg-emerald-600 text-white rounded-sm hover:bg-emerald-700 shadow-sm transition-all"
+                            title="Calibrate Scale (Revit-style)"
+                          >
+                             <Ruler className="w-3 h-3" />
+                          </button>
+                       </div>
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Visibility</label>
-                      <button 
-                        onClick={() => setIsRefVisible(!isRefVisible)}
-                        className={`w-full flex items-center justify-center gap-2 py-2 rounded-sm border transition-all text-[10px] font-black uppercase ${isRefVisible ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
-                      >
-                        {isRefVisible ? <><Eye className="w-3.5 h-3.5" /> Visible</> : <><EyeOff className="w-3.5 h-3.5" /> Hidden</>}
-                      </button>
-                   </div>
+                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Placement</label>
+                       <button 
+                         onClick={() => setRefImageValue('isRefImageLocked', !isRefImageLocked)}
+                         className={`w-full flex items-center justify-center gap-2 py-2 rounded-sm border transition-all text-[10px] font-black uppercase ${!isRefImageLocked ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                       >
+                         {!isRefImageLocked ? <><Compass className="w-3.5 h-3.5 animate-spin-slow" /> Unlocked</> : <><Target className="w-3.5 h-3.5" /> Locked</>}
+                       </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Offset X (m)</label>
-                      <div className="flex items-center gap-1">
-                         <input 
-                           type="number" step="0.1" 
-                           value={refImageX} 
-                           onChange={(e) => setRefImageValue('refImageX', parseFloat(e.target.value))} 
-                           className="w-full bg-slate-50 border border-slate-200 rounded-sm px-2 py-2 text-xs font-black text-center"
-                         />
-                      </div>
-                   </div>
-                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Offset Y (m)</label>
-                      <input 
-                        type="number" step="0.1" 
-                        value={refImageY} 
-                        onChange={(e) => setRefImageValue('refImageY', parseFloat(e.target.value))} 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-sm px-2 py-2 text-xs font-black text-center"
-                      />
-                   </div>
-                </div>
+                    <div className="space-y-2">
+                       <button 
+                         onClick={() => setIsRefVisible(!isRefVisible)}
+                         className={`w-full flex items-center justify-center gap-2 py-2 rounded-sm border transition-all text-[10px] font-black uppercase ${isRefVisible ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                       >
+                         {isRefVisible ? <><Eye className="w-3.5 h-3.5" /> Visibility</> : <><EyeOff className="w-3.5 h-3.5" /> Invisible</>}
+                       </button>
+                    </div>
+                    <div className="space-y-2">
+                       <button 
+                         onClick={() => { setRefImageValue('refImageX', 0); setRefImageValue('refImageY', 0); }}
+                         className="w-full h-full flex items-center justify-center gap-2 py-2 rounded-sm border border-slate-200 bg-white text-slate-500 text-[10px] font-black uppercase hover:bg-slate-50"
+                       >
+                          Reset Pos
+                       </button>
+                    </div>
+                 </div>
 
                 <div className="pt-2 flex gap-2">
                    <button 
@@ -546,11 +649,14 @@ export default function LayoutCanvas({
         onMouseUp={() => { setIsDraggingNode(null); setIsDraggingObject(null); setIsPanning(false); }}
         onMouseLeave={() => { setIsDraggingNode(null); setIsDraggingObject(null); setIsPanning(false); }}
         onTouchMove={handlePointerMove}
-        onTouchEnd={() => { setIsDraggingNode(null); setIsDraggingObject(null); setIsPanning(false); }}
+        onTouchEnd={() => { setIsDraggingNode(null); setIsDraggingObject(null); setIsPanning(false); setIsDraggingRefImage(false); }}
       >
         <defs>
           <pattern id="smallGrid" width={0.2} height={0.2} patternUnits="userSpaceOnUse"><path d="M 0.2 0 L 0 0 0 0.2" fill="none" stroke="#E2E8F0" strokeWidth="0.015" /></pattern>
           <pattern id="grid" width={1} height={1} patternUnits="userSpaceOnUse"><rect width={1} height={1} fill="url(#smallGrid)" /><path d="M 1 0 L 0 0 0 1" fill="none" stroke="#CBD5E1" strokeWidth="0.03" /></pattern>
+          <pattern id="slabPattern" width="1" height="1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="1" stroke="#10B981" strokeWidth="0.1" opacity="0.3" />
+          </pattern>
         </defs>
         
         {/* VIEWPORT BG */}
@@ -573,13 +679,36 @@ export default function LayoutCanvas({
 
         {drawingSession && (
           <g>
-            <line x1={drawingSession.x1} y1={drawingSession.y1} x2={mousePos.x} y2={mousePos.y} stroke="#3B82F6" strokeWidth="0.3" strokeDasharray="0.5,0.2" className="animate-pulse" />
-            <circle cx={drawingSession.x1} cy={drawingSession.y1} r="0.2" fill="#3B82F6" />
-            <circle cx={mousePos.x} cy={mousePos.y} r="0.2" fill="white" stroke="#3B82F6" strokeWidth="0.1" />
+            {calibrationPoints && (
+              <line 
+                x1={calibrationPoints[0].x} y1={calibrationPoints[0].y} 
+                x2={mousePos.x} y2={mousePos.y} 
+                stroke="#10B981" strokeWidth="0.15" strokeDasharray="0.3,0.1" 
+              />
+            )}
+            {drawMode === 'slab' ? (
+              <rect 
+                x={Math.min(drawingSession.x1, mousePos.x)}
+                y={Math.min(drawingSession.y1, mousePos.y)}
+                width={Math.abs(mousePos.x - drawingSession.x1)}
+                height={Math.abs(mousePos.y - drawingSession.y1)}
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="0.1"
+                strokeDasharray="0.3,0.1"
+              />
+            ) : (
+              <line x1={drawingSession.x1} y1={drawingSession.y1} x2={mousePos.x} y2={mousePos.y} stroke="#3B82F6" strokeWidth="0.3" strokeDasharray="0.5,0.2" className="animate-pulse" />
+            )}
+            <circle cx={drawingSession.x1} cy={drawingSession.y1} r="0.2" fill={drawMode === 'slab' ? "#10B981" : "#3B82F6"} />
+            <circle cx={mousePos.x} cy={mousePos.y} r="0.2" fill="white" stroke={drawMode === 'slab' ? "#10B981" : "#3B82F6"} strokeWidth="0.1" />
             <g transform={`translate(${(drawingSession.x1 + mousePos.x) / 2}, ${(drawingSession.y1 + mousePos.y) / 2 - 0.5})`}>
-              <rect x="-0.6" y="-0.25" width="1.2" height="0.5" fill="#3B82F6" rx="0.1" />
+              <rect x="-0.6" y="-0.25" width="1.2" height="0.5" fill={drawMode === 'slab' ? "#10B981" : "#3B82F6"} rx="0.1" />
               <text textAnchor="middle" y="0.1" className="text-[0.4px] font-black fill-white uppercase tracking-tighter">
-                {Math.sqrt(Math.pow(mousePos.x - drawingSession.x1, 2) + Math.pow(mousePos.y - drawingSession.y1, 2)).toFixed(2)}m
+                {drawMode === 'slab' 
+                  ? `${Math.abs(mousePos.x - drawingSession.x1).toFixed(1)}x${Math.abs(mousePos.y - drawingSession.y1).toFixed(1)}m`
+                  : `${Math.sqrt(Math.pow(mousePos.x - drawingSession.x1, 2) + Math.pow(mousePos.y - drawingSession.y1, 2)).toFixed(2)}m`
+                }
               </text>
             </g>
           </g>
@@ -587,6 +716,7 @@ export default function LayoutCanvas({
 
         {items.map((item) => {
           const isColumn = item.x1 === item.x2 && item.y1 === item.y2;
+          const isSlab = item.type === 'slab';
           const isSelected = selectedId === item.id;
           return (
             <g 
@@ -613,7 +743,40 @@ export default function LayoutCanvas({
                  {isSelected && <circle cx={item.x1} cy={item.y1} r="0.6" fill="var(--primary)" fillOpacity="0.2" className="animate-pulse" />}
                  <circle cx={item.x1} cy={item.y1} r="0.4" fill={isSelected ? "var(--primary)" : "#1E293B"} className="drop-shadow-md transition-colors" vectorEffect="non-scaling-stroke" />
                 </>
-              ) : (
+              ) : isSlab ? (
+                 <>
+                  <rect 
+                    x={Math.min(item.x1, item.x2)} 
+                    y={Math.min(item.y1, item.y2)} 
+                    width={Math.abs(item.x2 - item.x1)} 
+                    height={Math.abs(item.y2 - item.y1)} 
+                    fill="url(#slabPattern)" 
+                    stroke="transparent" 
+                  />
+                  {isSelected && (
+                    <rect 
+                      x={Math.min(item.x1, item.x2)} 
+                      y={Math.min(item.y1, item.y2)} 
+                      width={Math.abs(item.x2 - item.x1)} 
+                      height={Math.abs(item.y2 - item.y1)} 
+                      fill="none" 
+                      stroke="var(--primary)" 
+                      strokeWidth="0.2" 
+                      className="animate-pulse" 
+                    />
+                  )}
+                  <rect 
+                    x={Math.min(item.x1, item.x2)} 
+                    y={Math.min(item.y1, item.y2)} 
+                    width={Math.abs(item.x2 - item.x1)} 
+                    height={Math.abs(item.y2 - item.y1)} 
+                    fill="none" 
+                    stroke={isSelected ? "var(--primary)" : "#10B981"} 
+                    strokeWidth={isSelected ? "0.2" : "0.1"} 
+                    vectorEffect="non-scaling-stroke" 
+                  />
+                 </>
+               ) : (
                 <>
                  <line x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} stroke="transparent" strokeWidth="1.2" strokeLinecap="round" />
                  {isSelected && <line x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} stroke="var(--primary)" strokeWidth="0.8" strokeLinecap="round" strokeOpacity="0.2" className="animate-pulse" />}
@@ -685,4 +848,6 @@ export default function LayoutCanvas({
       </div>
     </div>
   );
-}
+});
+
+export default LayoutCanvas;
