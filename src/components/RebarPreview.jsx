@@ -9,11 +9,13 @@ export default function RebarPreview({
   stirrupSize, className 
 }) {
   const [currentView, setCurrentView] = React.useState('sup'); // 'sup' | 'mid'
-  const maxDim = Math.max(width, depth);
+  const safeWidth = width || 0.1;
+  const safeDepth = depth || 0.1;
+  const maxDim = Math.max(safeWidth, safeDepth) || 0.1;
   const scale = 140 / maxDim;
   
-  const w = width * scale;
-  const d = depth * scale;
+  const w = safeWidth * scale;
+  const d = safeDepth * scale;
   const x0 = (200 - w) / 2;
   const y0 = (200 - d) / 2;
 
@@ -22,10 +24,10 @@ export default function RebarPreview({
   const stirrupW = Math.max(2, w - 10);
   const stirrupD = Math.max(2, d - 10);
 
-  const topCountTotal = topBars.reduce((sum, b) => sum + (b.count || 0), 0);
-  const bottomCountTotal = bottomBars.reduce((sum, b) => sum + (b.count || 0), 0);
-  const supportCountTotal = supportBars.reduce((sum, b) => sum + (b.count || 0), 0);
-  const spanCountTotal = spanBars.reduce((sum, b) => sum + (b.count || 0), 0);
+  const topCountTotal = Array.isArray(topBars) ? topBars.reduce((sum, b) => sum + (Number(b.count) || 0), 0) : 0;
+  const bottomCountTotal = Array.isArray(bottomBars) ? bottomBars.reduce((sum, b) => sum + (Number(b.count) || 0), 0) : 0;
+  const supportCountTotal = Array.isArray(supportBars) ? supportBars.reduce((sum, b) => sum + (Number(b.count) || 0), 0) : 0;
+  const spanCountTotal = Array.isArray(spanBars) ? spanBars.reduce((sum, b) => sum + (Number(b.count) || 0), 0) : 0;
 
   const generateDots = () => {
     const dots = [];

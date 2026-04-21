@@ -7,10 +7,12 @@ This roadmap tracks the evolution of the Auto-Pilot BOQ system from a specialize
 - [x] High-precision "Click-Move-Click" engine
 - [x] Advanced Stirrup Zonation logic
 - [x] Per-instance deletion/selection
-- [x] **New**: Revit-Style Image Calibration & Dragging
-- [x] **New**: UI/UX Fluidity Overhaul (Spring Physics)
+- [x] Revit-Style Image Calibration & Dragging
+- [x] UI/UX Fluidity Overhaul (Spring Physics)
 - [ ] **Next**: PDF Export V2 (Visual reports)
 - [x] LocalStorage & File persistence stability
+- [x] **New**: Precision Shift-Lock (Ortho Drawing)
+- [ ] **Next**: Undo/Redo History Stack
 
 ## 🟡 Phase 2: Structural Depth (Short Term)
 - [ ] **Slab Reinforcement V2**: Detailed grid vs. mesh layouts for oddly shaped slabs.

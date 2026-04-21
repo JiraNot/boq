@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Plus, Copy, Trash2, Settings2, Box, ArrowDownWideNarrow, ChevronDown, ChevronUp, Construction, Ruler, Eye, LayoutGrid, Layout } from 'lucide-react';
+import { Layers, Plus, Copy, Trash2, Settings2, Box, ArrowDownWideNarrow, ChevronDown, ChevronUp, Construction, Ruler, Eye, LayoutGrid, Layout as LayoutIcon } from 'lucide-react';
 import { DEFAULT_ASSEMBLIES, STEEL_DATA, WIRE_MESH_DATA } from '../lib/constants';
 import { useFieldArray } from 'react-hook-form';
 import Tooltip from './Tooltip';
@@ -264,7 +264,7 @@ const TemplateManager = React.memo(({ templates: fields, append, remove, registe
                           <div className="space-y-1.5 opacity-60">
                             <label className="admin-label">Drawing Mode</label>
                             <div className="admin-input py-2 bg-slate-100 flex items-center gap-2 text-blue-600 font-black italic">
-                               <Layout className="w-3.5 h-3.5" /> RECTANGLE AREA
+                               <LayoutIcon className="w-3.5 h-3.5" /> RECTANGLE AREA
                             </div>
                           </div>
                         )}
@@ -318,7 +318,7 @@ const TemplateManager = React.memo(({ templates: fields, append, remove, registe
                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <RebarGroupEditor control={control} register={register} name={`templates.${index}.topBars`} label="Main Top Reinforcement (เหล็กยืนบน)" />
                                   <RebarGroupEditor control={control} register={register} name={`templates.${index}.bottomBars`} label="Main Bottom Reinforcement (เหล็กยืนล่าง)" />
-                               </div>
+                                </div>
                              ) : (
                                <div className="space-y-1.5">
                                   <label className="admin-label">Main Vertical Rebar</label>
@@ -420,27 +420,27 @@ const TemplateManager = React.memo(({ templates: fields, append, remove, registe
                         </h4>
                         <div className="bg-slate-50 rounded-full border border-slate-100 p-6 shadow-inner flex items-center justify-center w-40 h-40 md:w-48 md:h-48">
                            <RebarPreview 
-                              width={template.width}
-                              depth={template.depth}
+                              width={template.width || 0.1}
+                              depth={template.depth || 0.1}
                               isBeam={isBeam}
                               isSlab={isSlab}
                               slabType={template.slabRebarType}
-                              count={template.mainBarCount}
-                              topBars={template.topBars}
-                              bottomBars={template.bottomBars}
-                              supportBars={template.supportBars}
-                              spanBars={template.spanBars}
+                              count={template.mainBarCount || 4}
+                              topBars={template.topBars || []}
+                              bottomBars={template.bottomBars || []}
+                              supportBars={template.supportBars || []}
+                              spanBars={template.spanBars || []}
                               className="bg-transparent border-none shadow-none"
                            />
                         </div>
                         <div className="space-y-2 w-full max-w-[160px]">
                            <div className="flex items-center justify-between text-[10px] font-black border-b border-slate-50 pb-1">
                               <span className="text-slate-400 uppercase">Aspect</span>
-                              <span className="text-slate-900">1:{(template.depth / template.width).toFixed(1)}</span>
+                              <span className="text-slate-900">1:{((template.depth || 0.1) / (template.width || 0.1)).toFixed(1)}</span>
                            </div>
                            <div className="flex items-center justify-between text-[10px] font-black">
                               <span className="text-slate-400 uppercase">Area</span>
-                              <span className="text-slate-900">{(template.width * template.depth).toFixed(3)} m²</span>
+                              <span className="text-slate-900">{((template.width || 0) * (template.depth || 0)).toFixed(3)} m²</span>
                            </div>
                         </div>
                      </div>

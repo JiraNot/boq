@@ -1,7 +1,7 @@
 # Current Status & Missions
 
 **Last Updated**: 2026-04-21
-**Current Mission**: Hardening Professional Export and Collaboration.
+**Current Mission**: Hardening Precision Drawing & History Management.
 
 ---
 
@@ -16,15 +16,15 @@
 8.  **Freestyle Canvas Manipulation**: Drag and lock reference images for perfect alignment without manual offset coding.
 9.  **UI/UX Performance Overhaul**: Memoized rendering for zero-stutter interactions and physical spring transitions for a premium Feel.
 10. **Quick Template Switcher**: Floating on-canvas toolbar to change structural types instantly without context switching.
+11. **System Stabilization**: Resolved Vite 500 crashes, NaN console warnings, and restored the missing image upload logic.
+12. **Precision Shift-Lock**: Synchronized modifier logic for perfectly aligned Ortho drawing (no more skewed clicks).
 
 ## 🛠️ Active "Missions" (What I am doing now)
-1.  **Structural Integrity Audit**: Finalizing verification of weight calculations for complex multi-layer configurations.
-2.  **Advanced Snapping**: Angle straightening (Ortho) and 45-degree snapping to the drawing engine.
+1.  **Undo/Redo History**: Building the history stack for canvas actions to prevent data loss on mis-clicks.
 
 ## 🎯 Next Missions (What to do next)
 1.  **PDF Export V2**: Upgrade the auto-generated PDF report to match the new high-fidelity UI aesthetics.
-2.  **Undo/Redo**: Implement a history stack for drawing actions to prevent accidental mis-clicks.
-3.  **Offline PWA**: (Potential) Enable the app to work entirely offline on construction sites.
+2.  **Offline PWA**: (Potential) Enable the app to work entirely offline on construction sites.
 
 ---
 
