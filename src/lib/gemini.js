@@ -31,26 +31,21 @@ export async function analyzeDrawing(apiKey, imageBase64, mode = 'plan') {
        และสกัดข้อมูลทางวิศวกรรมสำหรับคาน "ทุกประเภท" ที่ปรากฏในภาพ (เช่น GB1, GB2, GB3, B1, B2 เป็นต้น)
        
        ข้อมูลที่ต้องการสกัด (ต่อหนึ่งเบอร์คาน):
-       - width (ความกว้างคาน เป็นเมตร เช่น 0.20)
-       - depth (ความลึกคาน เป็นเมตร เช่น 0.40)
-       - topMainCount (จำนวนเหล็กแกนบน)
-       - topMainSize (ขนาดเหล็กแกนบน เช่น DB12, DB16)
-       - bottomMainCount (จำนวนเหล็กแกนล่าง)
-       - bottomMainSize (ขนาดเหล็กแกนล่าง เช่น DB12, DB16)
-       - stirrupSize (ขนาดเหล็กปลอก เช่น RB6, RB9)
-       - stirrupSpacing (ระยะห่างเหล็กปลอก เป็นเมตร เช่น 0.15 หรือ 0.20)
+       - width (m), depth (m)
+       - topBars: [ { count, size, zone: "mid" | "sup" } ] (รายการเหล็กบนทั้งหมด แยกตามขนาดและโซน)
+       - bottomBars: [ { count, size, zone: "mid" | "sup" } ] (รายการเหล็กล่างทั้งหมด แยกตามขนาดและโซน)
+       - stirrupSize (ขนาดเหล็กปลอก)
+       - stirrupSpacing (เมตร)
        
-       ให้ตอบกลับเฉพาะ JSON object ที่ใช้ Label เป็น key ดังนี้เท่านั้น (ห้ามมีข้อความอื่น):
+       สำคัญ: หากในหนึ่งหน้าตัดมีเหล็กหลายขนาด (เช่น 3 DB16 + 2 DB12) ให้แยก object ใน array ห้ามเอามารวมกัน
+       
+       ให้ตอบกลับเฉพาะ JSON object ที่ใช้ Label เป็น key ดังนี้เท่านั้น:
        {
-         "GB1": {
-           "width": 0.20,
-           "depth": 0.40,
-           "topMainCount": 2,
-           "topMainSize": "DB12",
-           "bottomMainCount": 3,
-           "bottomMainSize": "DB12",
-           "stirrupSize": "RB6",
-           "stirrupSpacing": 0.15
+         "B5": {
+           "width": 0.20, "depth": 0.50,
+           "topBars": [{ "count": 2, "size": "DB16", "zone": "mid" }, { "count": 3, "size": "DB16", "zone": "sup" }, { "count": 2, "size": "DB12", "zone": "sup" }],
+           "bottomBars": [...],
+           "stirrupSize": "RB9", "stirrupSpacing": 0.125
          }
        }`;
 

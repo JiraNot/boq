@@ -72,22 +72,26 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
       // Check if template already exists
       const existingIdx = newTemplates.findIndex(t => t.name.toLowerCase().includes(label.toLowerCase()));
       
+      // Extract bars, prefer mid-span for the main template view
+      const topBars = (details.topBars || []).map(b => ({ count: b.count, size: b.size.replace(' mm.', '') }));
+      const bottomBars = (details.bottomBars || []).map(b => ({ count: b.count, size: b.size.replace(' mm.', '') }));
+
       const templateData = {
         id: `t-${Date.now()}-${label}`,
         name: `Beam ${label}`,
         assemblyId: 'a2', // Standard Beam
         width: details.width || 0.2,
         depth: details.depth || 0.4,
-        // Update main fields (fallback)
-        topMainCount: details.topMainCount || 2,
-        topMainSize: details.topMainSize || 'DB12',
-        bottomMainCount: details.bottomMainCount || 2,
-        bottomMainSize: details.bottomMainSize || 'DB12',
+        // Update main fields (fallback for calculation logic that doesn't use arrays)
+        topMainCount: topBars[0]?.count || 2,
+        topMainSize: topBars[0]?.size || 'DB12',
+        bottomMainCount: bottomBars[0]?.count || 2,
+        bottomMainSize: bottomBars[0]?.size || 'DB12',
         // Update Array-based fields for UI consistency
-        topBars: [{ count: details.topMainCount || 2, size: details.topMainSize || 'DB12' }],
-        bottomBars: [{ count: details.bottomMainCount || 2, size: details.bottomMainSize || 'DB12' }],
+        topBars: topBars.length > 0 ? topBars : [{ count: 2, size: 'DB12' }],
+        bottomBars: bottomBars.length > 0 ? bottomBars : [{ count: 2, size: 'DB12' }],
         // Stirrups
-        stirrupSize: details.stirrupSize || 'RB6',
+        stirrupSize: (details.stirrupSize || 'RB6').replace(' mm.', ''),
         stirrupSpacingEnd: details.stirrupSpacing || 0.15,
         stirrupSpacingMiddle: details.stirrupSpacing || 0.15,
         stirrupZoneRatio: 0.25
