@@ -50,6 +50,7 @@ export default function App() {
     let totalMaterialCost = 0;
     let totalLaborCost = 0;
     const resourceTotals = {};
+    const stirrupGroups = {};
 
     const templateSummaries = (watchTemplates || []).map(template => {
       const assembly = DEFAULT_ASSEMBLIES.find(a => a.id === template.assemblyId);
@@ -162,11 +163,32 @@ export default function App() {
              const sEnd = template.stirrupSpacingEnd || 0.10;
              const sMid = template.stirrupSpacingMiddle || 0.20;
              const ratio = template.stirrupZoneRatio || 0.25;
-             const stirrupLength = 2 * (Math.max(0, template.width - 0.1) + Math.max(0, template.depth - 0.1));
+             
+             // Calculate actual stirrup dimensions (e.g. 15x30 cm)
+             // Default covering is 2.5cm each side -> total 5cm (0.05m) reduction
+             const sW = Math.max(0, (template.width || 0) - 0.05);
+             const sD = Math.max(0, (template.depth || 0) - 0.05);
+             const dimKey = `${Math.round(sW * 100)}x${Math.round(sD * 100)}`;
+             
+             const stirrupLength = 2 * (sW + sD);
              const lengthEndTotal = totalLength * ratio * 2;
              const lengthMidTotal = totalLength - lengthEndTotal;
-             const totalStirrupWeight = (lengthEndTotal/sEnd + lengthMidTotal/sMid) * stirrupLength * stirrupSpec.weight * 1.05;
+             const totalStirrups = Math.ceil(lengthEndTotal/sEnd + lengthMidTotal/sMid);
+             const totalStirrupWeight = totalStirrups * stirrupLength * stirrupSpec.weight * 1.05;
              addSteel(stirrupSpec.id, totalStirrupWeight);
+
+             // Track for Procurement
+             const groupKey = `${template.stirrupSize}_${dimKey}`;
+             if (!stirrupGroups[groupKey]) {
+               stirrupGroups[groupKey] = { 
+                 size: template.stirrupSize, 
+                 dim: dimKey, 
+                 count: 0, 
+                 label: `ปลอก ${stirrupSpec.label} ขนาด ${dimKey} ซม.`,
+                 spec: stirrupSpec
+               };
+             }
+             stirrupGroups[groupKey].count += totalStirrups;
            }
         }
       }
@@ -197,7 +219,16 @@ export default function App() {
 
     const directCost = totalMaterialCost + totalLaborCost;
     const totalSale = directCost * compositeFactorF;
-    return { calculatedTemplates: templateSummaries, resourceTotals, totalMaterialCost, totalLaborCost, directCost, totalSale, margin: totalSale - directCost };
+    return { 
+      calculatedTemplates: templateSummaries, 
+      resourceTotals, 
+      stirrupGroups: Object.values(stirrupGroups),
+      totalMaterialCost, 
+      totalLaborCost, 
+      directCost, 
+      totalSale, 
+      margin: totalSale - directCost 
+    };
   }, [watchTemplates, watchInstances, compositeFactorF]);
 
   const updateInstanceLayout = React.useCallback((id, updates) => {

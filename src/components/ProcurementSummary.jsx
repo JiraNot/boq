@@ -133,6 +133,38 @@ export default function ProcurementSummary({ projectSummary }) {
               </div>
             </section>
 
+            {/* STIRRUP SECTION (NEW) */}
+            {(projectSummary.stirrupGroups || []).length > 0 && (
+              <section className="space-y-6">
+                <h3 className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                   <ShoppingCart className="w-4 h-4 text-orange-500" /> Pre-made Stirrups (เหล็กปลอกสำเร็จรูป)
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {projectSummary.stirrupGroups.map((group, idx) => (
+                    <div key={idx} className="group relative bg-white border border-slate-200 rounded-sm p-6 hover:border-orange-500 hover:shadow-2xl transition-all duration-300">
+                       <div className="flex items-center justify-between mb-4">
+                          <div className="flex flex-col">
+                             <span className="text-xl font-black text-slate-900 tracking-tighter uppercase">{group.label}</span>
+                             <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-sm w-fit mt-1">Ready to Order</span>
+                          </div>
+                          <div className="w-12 h-12 bg-orange-500 rounded-sm flex items-center justify-center text-white shadow-lg">
+                             <Ruler className="w-6 h-6" />
+                          </div>
+                       </div>
+                       
+                       <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Order Quantity</div>
+                          <div className="text-[32px] font-black text-slate-900 leading-tight flex items-baseline gap-2 group-hover:text-orange-600 transition-colors">
+                             {group.count.toLocaleString()} <span className="text-sm font-black text-slate-400 uppercase tracking-widest">Pieces (ตัว)</span>
+                          </div>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* WIRE MESH SECTION */}
             <section className="space-y-6">
               <h3 className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
