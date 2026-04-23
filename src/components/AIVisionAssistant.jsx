@@ -157,7 +157,14 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <span className="text-green-700 font-bold text-sm">Plan Uploaded</span>
-                    <img src={planImage} className="absolute inset-0 w-full h-full object-cover opacity-10 rounded-2xl" alt="preview" />
+                    {planImage.startsWith('data:application/pdf') ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <FileSearch className="w-4 h-4 text-slate-400" />
+                        <span className="text-[10px] text-slate-400 uppercase font-bold">PDF Document</span>
+                      </div>
+                    ) : (
+                      <img src={planImage} className="absolute inset-0 w-full h-full object-cover opacity-10 rounded-2xl" alt="preview" />
+                    )}
                   </>
                 ) : (
                   <>
@@ -166,11 +173,11 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
                     </div>
                     <div className="text-center">
                       <span className="block text-slate-800 font-bold">Structural Plan</span>
-                      <span className="text-slate-500 text-xs mt-1 block">Click to upload floor plan image</span>
+                      <span className="text-slate-500 text-xs mt-1 block">Upload Plan (Image/PDF)</span>
                     </div>
                   </>
                 )}
-                <input type="file" ref={planInputRef} onChange={(e) => handleImageUpload(e, 'plan')} hidden accept="image/*" />
+                <input type="file" ref={planInputRef} onChange={(e) => handleImageUpload(e, 'plan')} hidden accept="image/*,application/pdf" />
               </div>
 
               {/* DETAIL UPLOAD */}
@@ -184,7 +191,14 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <span className="text-green-700 font-bold text-sm">Details Uploaded</span>
-                    <img src={detailImage} className="absolute inset-0 w-full h-full object-cover opacity-10 rounded-2xl" alt="preview" />
+                    {detailImage.startsWith('data:application/pdf') ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <FileSearch className="w-4 h-4 text-slate-400" />
+                        <span className="text-[10px] text-slate-400 uppercase font-bold">PDF Document</span>
+                      </div>
+                    ) : (
+                      <img src={detailImage} className="absolute inset-0 w-full h-full object-cover opacity-10 rounded-2xl" alt="preview" />
+                    )}
                   </>
                 ) : (
                   <>
@@ -193,11 +207,11 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
                     </div>
                     <div className="text-center">
                       <span className="block text-slate-800 font-bold">Beam Details</span>
-                      <span className="text-slate-500 text-xs mt-1 block">Click to upload reinforcement details</span>
+                      <span className="text-slate-500 text-xs mt-1 block">Upload Details (Image/PDF)</span>
                     </div>
                   </>
                 )}
-                <input type="file" ref={detailInputRef} onChange={(e) => handleImageUpload(e, 'detail')} hidden accept="image/*" />
+                <input type="file" ref={detailInputRef} onChange={(e) => handleImageUpload(e, 'detail')} hidden accept="image/*,application/pdf" />
               </div>
             </div>
 

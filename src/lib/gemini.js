@@ -54,12 +54,14 @@ export async function analyzeDrawing(apiKey, imageBase64, mode = 'plan') {
          }
        }`;
 
+  const mimeType = imageBase64.split(';')[0].split(':')[1];
+
   const result = await model.generateContent([
     prompt,
     {
       inlineData: {
         data: imageBase64.split(',')[1],
-        mimeType: "image/jpeg",
+        mimeType: mimeType || "image/jpeg",
       },
     },
   ]);
