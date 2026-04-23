@@ -7,7 +7,7 @@ export async function analyzeDrawing(apiKey, imageBase64, mode = 'plan') {
   if (!apiKey) throw new Error("Missing Gemini API Key");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-preview" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
   const prompt = mode === 'plan' 
     ? `คุณคือวิศวกรโครงสร้างผู้เชี่ยวชาญ (Senior Structural Engineer) 
