@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, X, Info, Percent, Save, Briefcase } from 'lucide-react';
+import { Settings, X, Info, Percent, Save, Briefcase, Sparkles } from 'lucide-react';
 
 export default function SettingsModal({ isOpen, onClose, register, compositeFactorF }) {
   if (!isOpen) return null;
@@ -87,8 +87,27 @@ export default function SettingsModal({ isOpen, onClose, register, compositeFact
                  </div>
               </div>
 
+              {/* AI Configuration */}
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                     <Sparkles className="w-3.5 h-3.5 text-blue-600" /> AI Intelligence (Gemini)
+                  </h4>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter flex items-center justify-between">
+                        Google Gemini API Key
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Get Key</a>
+                     </label>
+                     <input 
+                       type="password"
+                       {...register("geminiApiKey")} 
+                       className="w-full bg-slate-50 border border-slate-200 rounded-sm py-2 px-3 text-xs font-mono text-slate-800 focus:border-blue-500 focus:bg-white outline-none transition-all"
+                       placeholder="AI... (Paste your key here)" 
+                     />
+                  </div>
+               </div>
+
               {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                  <button 
                   onClick={onClose}
                   className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-sm shadow-xl hover:bg-blue-700 hover:translate-y-[-1px] transition-all"

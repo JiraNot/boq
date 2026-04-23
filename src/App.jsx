@@ -19,7 +19,9 @@ import ProcurementSummary from './components/ProcurementSummary';
 import DetailedTakeoff from './components/DetailedTakeoff';
 import AuthModal from './components/AuthModal';
 import CloudSyncStatus from './components/CloudSyncStatus';
+import AIVisionAssistant from './components/AIVisionAssistant';
 import { signOut } from './lib/pocketbase';
+import { Sparkles } from 'lucide-react';
 
 
 // Icons
@@ -36,6 +38,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('layout'); 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const { user, isSyncing, lastSync } = useBoqStore();
   
   const { templates: watchTemplates, instances: watchInstances, profitRate, taxRate, overheadRate } = data;
@@ -318,6 +321,13 @@ export default function App() {
               <button onClick={() => setActiveTab('takeoff')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'takeoff' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
                 <ListTree className="w-3.5 h-3.5" /> 5. DETAILED TAKEOFF
               </button>
+              <div className="flex-1" />
+              <button 
+                onClick={() => setIsAIAssistantOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-[10px] font-black rounded-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all uppercase tracking-widest"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> AI Takeoff
+              </button>
           </div>
         </div>
 
@@ -381,6 +391,19 @@ export default function App() {
         register={register}
         compositeFactorF={compositeFactorF}
       />
+
+      {isAIAssistantOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsAIAssistantOpen(false)} />
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+             <AIVisionAssistant 
+               data={data} 
+               setValue={setValue} 
+               templates={templates} 
+             />
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

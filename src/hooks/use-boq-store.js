@@ -66,6 +66,7 @@ const boqV2Schema = z.object({
   refImageScale: z.number().min(0.001).default(1),
   refImageOpacity: z.number().min(0).max(1).default(0.5),
   isRefImageLocked: z.boolean().default(true),
+  geminiApiKey: z.string().optional().default(''),
 });
 
 const DEFAULT_TEMPLATES = [
@@ -92,7 +93,8 @@ const DEFAULT_PROJECT_DATA = {
   refImageX: 0,
   refImageY: 0,
   refImageScale: 1,
-  refImageOpacity: 0.5
+  refImageOpacity: 0.5,
+  geminiApiKey: ''
 };
 
 export function useBoqStore() {
@@ -142,7 +144,8 @@ export function useBoqStore() {
       refImageY: 0,
       refImageScale: 1,
       refImageOpacity: 0.5,
-      isRefImageLocked: true
+      isRefImageLocked: true,
+      geminiApiKey: localStorage.getItem('gemini_api_key') || ''
     };
   };
 
@@ -160,6 +163,7 @@ export function useBoqStore() {
   useEffect(() => {
     const subscription = form.watch((value) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+      if (value.geminiApiKey) localStorage.setItem('gemini_api_key', value.geminiApiKey);
     });
     return () => subscription.unsubscribe();
   }, [form.watch]);
