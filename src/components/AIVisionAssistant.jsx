@@ -72,28 +72,59 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
       // Check if template already exists
       const existingIdx = newTemplates.findIndex(t => t.name.toLowerCase().includes(label.toLowerCase()));
       
-      // Extract bars, prefer mid-span for the main template view
-      const topBars = (details.topBars || []).map(b => ({ count: b.count, size: b.size.replace(' mm.', '') }));
-      const bottomBars = (details.bottomBars || []).map(b => ({ count: b.count, size: b.size.replace(' mm.', '') }));
+      const rawTop = (details.topBars || []).map(b => ({ ...b, size: b.size.replace(/\s*mm\.?/gi, '').toUpperCase() }));
+      const rawBottom = (details.bottomBars || []).map(b => ({ ...b, size: b.size.replace(/\s*mm\.?/gi, '').toUpperCase() }));
+
+      // Helper to group by size
+      const groupByWeight = (bars) => bars.reduce((acc, b) => {
+        acc[b.size] = (acc[b.size] || 0) + b.count;
+        return acc;
+      }, {});
+
+      const topMid = groupByWeight(rawTop.filter(b => b.zone === 'mid'));
+      const topSup = groupByWeight(rawTop.filter(b => b.zone === 'sup' || !b.zone));
+      const botMid = groupByWeight(rawBottom.filter(b => b.zone === 'mid' || !b.zone));
+      const botSup = groupByWeight(rawBottom.filter(b => b.zone === 'sup'));
+
+      // 1. Main Top = What's in the mid section
+      const topMain = Object.entries(topMid).map(([size, count]) => ({ count, size }));
+      
+      // 2. Extra Top (Support) = Support minus Mid
+      const supportBars = [];
+      Object.entries(topSup).forEach(([size, count]) => {
+        const diff = count - (topMid[size] || 0);
+        if (diff > 0) supportBars.push({ count: diff, size });
+      });
+
+      // 3. Main Bottom = What's in the support section
+      const bottomMain = Object.entries(botSup).map(([size, count]) => ({ count, size }));
+      
+      // 4. Extra Bottom (Span) = Mid minus Support
+      const spanBars = [];
+      Object.entries(botMid).forEach(([size, count]) => {
+        const diff = count - (botSup[size] || 0);
+        if (diff > 0) spanBars.push({ count: diff, size });
+      });
+
+      // Fallback if AI didn't provide zones (default to mid)
+      const finalTopMain = topMain.length > 0 ? topMain : Object.entries(topSup).map(([size, count]) => ({ count, size }));
+      const finalBottomMain = bottomMain.length > 0 ? bottomMain : Object.entries(botMid).map(([size, count]) => ({ count, size }));
 
       const templateData = {
         id: `t-${Date.now()}-${label}`,
         name: `Beam ${label}`,
-        assemblyId: 'a2', // Standard Beam
+        assemblyId: 'a2',
         width: details.width || 0.2,
         depth: details.depth || 0.4,
-        // Update main fields (fallback for calculation logic that doesn't use arrays)
-        topMainCount: topBars[0]?.count || 2,
-        topMainSize: topBars[0]?.size || 'DB12',
-        bottomMainCount: bottomBars[0]?.count || 2,
-        bottomMainSize: bottomBars[0]?.size || 'DB12',
-        // Update Array-based fields for UI consistency
-        topBars: topBars.length > 0 ? topBars : [{ count: 2, size: 'DB12' }],
-        bottomBars: bottomBars.length > 0 ? bottomBars : [{ count: 2, size: 'DB12' }],
+        // UI Fields
+        topBars: finalTopMain.length > 0 ? finalTopMain : [{ count: 2, size: 'DB12' }],
+        bottomBars: finalBottomMain.length > 0 ? finalBottomMain : [{ count: 2, size: 'DB12' }],
+        supportBars: supportBars,
+        spanBars: spanBars,
         // Stirrups
-        stirrupSize: (details.stirrupSize || 'RB6').replace(' mm.', ''),
+        stirrupSize: (details.stirrupSize || 'RB6').replace(/\s*mm\.?/gi, '').toUpperCase(),
         stirrupSpacingEnd: details.stirrupSpacing || 0.15,
-        stirrupSpacingMiddle: details.stirrupSpacing || 0.15,
+        stirrupSpacingMiddle: details.stirrupSpacing || 0.20,
         stirrupZoneRatio: 0.25
       };
 

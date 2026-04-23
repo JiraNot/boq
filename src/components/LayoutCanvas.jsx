@@ -501,7 +501,7 @@ const LayoutCanvas = React.memo(({
 
         {items.map((item) => {
           const isSelected = selectedId === item.id;
-          const isSlab = item.type === 'slab';
+          const isSlab = item.type === 'slab' || templates.find(t => t.id === item.templateId)?.assemblyId === 'a3';
           return (
             <g 
               key={item.id} 

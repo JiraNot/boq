@@ -20,12 +20,13 @@ import DetailedTakeoff from './components/DetailedTakeoff';
 import AuthModal from './components/AuthModal';
 import CloudSyncStatus from './components/CloudSyncStatus';
 import AIVisionAssistant from './components/AIVisionAssistant';
+import SteelSummary from './components/SteelSummary';
 import { signOut } from './lib/pocketbase';
 import { Sparkles } from 'lucide-react';
 
 
 // Icons
-import { Table as TableIcon, Layout as LayoutIcon, FileText, ShoppingCart, Settings as CategoryIcon, ListTree } from 'lucide-react';
+import { Table as TableIcon, Layout as LayoutIcon, FileText, ShoppingCart, Settings as CategoryIcon, ListTree, ScrollText } from 'lucide-react';
 
 export default function App() {
   const { form, data, resetToDefault } = useBoqStore();
@@ -59,7 +60,10 @@ export default function App() {
       const totalLength = myInstances.reduce((sum, inst) => sum + (inst.length || 0), 0);
       const totalQty = myInstances.length || 0;
 
-      if (!assembly || totalQty === 0) return { ...template, cost: 0, totalLength, totalQty };
+      // SAFETY FILTER: If no instances drawn, skip all calculations for this template
+      if (!assembly || totalQty === 0) {
+        return { ...template, cost: 0, materialCost: 0, laborCost: 0, totalLength: 0, totalQty: 0, instances: [] };
+      }
 
       let templateMaterial = 0;
       let templateLabor = 0;
@@ -352,6 +356,9 @@ export default function App() {
               <button onClick={() => setActiveTab('takeoff')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'takeoff' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
                 <ListTree className="w-3.5 h-3.5" /> 5. DETAILED TAKEOFF
               </button>
+              <button onClick={() => setActiveTab('drawings')} className={`flex items-center gap-2 px-6 py-2 text-[10px] font-black rounded-sm transition-all uppercase tracking-widest ${activeTab === 'drawings' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+                <ScrollText className="w-3.5 h-3.5" /> 6. DRAWING SUMMARY
+              </button>
               <div className="flex-1" />
               <button 
                 onClick={() => setIsAIAssistantOpen(true)}
@@ -411,6 +418,11 @@ export default function App() {
             )}
             {activeTab === 'takeoff' && (
               <DetailedTakeoff projectSummary={projectSummary} />
+            )}
+            {activeTab === 'drawings' && (
+              <div className="page-transition">
+                <SteelSummary templates={watchTemplates} />
+              </div>
             )}
           </div>
         </div>
