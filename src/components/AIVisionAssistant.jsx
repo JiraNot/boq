@@ -78,13 +78,19 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
         assemblyId: 'a2', // Standard Beam
         width: details.width || 0.2,
         depth: details.depth || 0.4,
+        // Update main fields (fallback)
         topMainCount: details.topMainCount || 2,
         topMainSize: details.topMainSize || 'DB12',
         bottomMainCount: details.bottomMainCount || 2,
         bottomMainSize: details.bottomMainSize || 'DB12',
+        // Update Array-based fields for UI consistency
+        topBars: [{ count: details.topMainCount || 2, size: details.topMainSize || 'DB12' }],
+        bottomBars: [{ count: details.bottomMainCount || 2, size: details.bottomMainSize || 'DB12' }],
+        // Stirrups
         stirrupSize: details.stirrupSize || 'RB6',
         stirrupSpacingEnd: details.stirrupSpacing || 0.15,
-        stirrupSpacingMiddle: details.stirrupSpacing || 0.20,
+        stirrupSpacingMiddle: details.stirrupSpacing || 0.15,
+        stirrupZoneRatio: 0.25
       };
 
       if (existingIdx !== -1) {
