@@ -8,17 +8,27 @@ export default function ProcurementSummary({ projectSummary }) {
   const [barLength, setBarLength] = useState(10); // Standard 10m or 12m bars
 
   const getSteelOrder = () => {
+    // Calculate total weight of stirrups to subtract from main list
+    const stirrupWeights = (projectSummary.stirrupGroups || []).reduce((acc, group) => {
+      const weight = group.count * (2 * (parseFloat(group.dim.split('x')[0])/100 + parseFloat(group.dim.split('x')[1])/100)) * group.spec.weight * 1.05;
+      acc[group.spec.id] = (acc[group.spec.id] || 0) + weight;
+      return acc;
+    }, {});
+
     return Object.entries(STEEL_DATA).map(([key, data]) => {
-      const weight = resourceTotals[data.id]?.totalQty || 0;
-      if (weight === 0) return null;
+      const totalWeight = resourceTotals[data.id]?.totalQty || 0;
+      const stirrupWeight = stirrupWeights[data.id] || 0;
+      const netWeight = Math.max(0, totalWeight - stirrupWeight);
+      
+      if (netWeight < 0.1) return null; // Hide if basically zero
       
       const weightPerBar = data.weight * barLength;
-      const barCount = Math.ceil(weight / weightPerBar);
+      const barCount = Math.ceil(netWeight / weightPerBar);
       
       return {
         ...data,
         key,
-        totalWeight: weight,
+        totalWeight: netWeight,
         barCount: barCount,
         unit: 'Bars'
       };
