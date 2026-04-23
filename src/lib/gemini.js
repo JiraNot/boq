@@ -23,9 +23,9 @@ export async function analyzeDrawing(apiKey, imageBase64, mode = 'plan') {
        
        ให้ตอบกลับเฉพาะ JSON array ของ object ดังนี้เท่านั้น (ห้ามมีข้อความอื่น):
        [
-         { "label": "B1", "length": 3.50 },
-         { "label": "GB2", "length": 4.25 }
-       ]`
+         { "label": "B1", "length": 3.50, "coords": [x1, y1, x2, y2] }
+       ]
+       โดยที่ x1, y1, x2, y2 เป็นพิกัด 0-1000 (0=บนซ้าย, 1000=ล่างขวา)`
     : `คุณคือวิศวกรโครงสร้างผู้เชี่ยวชาญ (Senior Structural Engineer)
        ภารกิจของคุณคืออ่าน "แบบขยายการเสริมเหล็กคาน" (Beam Reinforcement Details) ที่แนบมานี้
        และสกัดข้อมูลทางวิศวกรรมสำหรับคาน "ทุกประเภท" ที่ปรากฏในภาพ (เช่น GB1, GB2, GB3, B1, B2 เป็นต้น)

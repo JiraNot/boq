@@ -102,17 +102,38 @@ export default function AIVisionAssistant({ data, setValue, templates: currentTe
 
     setValue('templates', newTemplates);
 
-    // 2. Add Instances
+    // 2. Add Instances and set Background Image
     const newInstances = [...(data.instances || [])];
+    
+    // Set the plan image as the reference image for tracing if it exists
+    if (planImage) {
+      setValue('refImage', planImage);
+      setValue('refImageScale', 0.05); // Initial sensible scale
+      setValue('refImageOpacity', 0.6);
+      setValue('isRefImageLocked', false);
+    }
+
     detectedInstances.forEach((inst, idx) => {
       // Find matching template
       const template = newTemplates.find(t => t.name.toLowerCase().includes(inst.label.toLowerCase()));
+      
       if (template) {
+        // Map 0-1000 AI coords to canvas space (roughly 0-50 meters)
+        let x1 = 0, y1 = idx * 2, x2 = inst.length, y2 = idx * 2;
+        
+        if (inst.coords && inst.coords.length === 4) {
+          const SCALE = 0.05; // Matches refImageScale
+          x1 = inst.coords[0] * SCALE;
+          y1 = inst.coords[1] * SCALE;
+          x2 = inst.coords[2] * SCALE;
+          y2 = inst.coords[3] * SCALE;
+        }
+
         newInstances.push({
           id: `inst-ai-${Date.now()}-${idx}`,
           templateId: template.id,
           length: inst.length,
-          x1: 0, y1: idx * 50, x2: inst.length, y2: idx * 50, // Default placement
+          x1, y1, x2, y2,
           isPlaced: true
         });
       }
